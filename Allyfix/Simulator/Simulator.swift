@@ -11,12 +11,14 @@ enum Simulator {
         case notPermitted
         case notRunning
         case noDevice
+        case covered
 
         var errorDescription: String? {
             switch self {
             case .notPermitted: "Allyfix needs Accessibility access to read the Simulator."
             case .notRunning: "Open your app in the iOS Simulator."
             case .noDevice: "No iPhone is shown in the Simulator."
+            case .covered: "Another window covers the Simulator, so Allyfix did not click."
             }
         }
     }
@@ -56,6 +58,63 @@ enum Simulator {
     static func press(_ element: Element) -> Bool {
         guard let ax = element.ax else { return false }
         return AXUIElementPerformAction(ax, kAXPressAction as CFString) == .success
+    }
+
+    /// Touches a point on the iPhone's screen with a real click, as a finger would: not a
+    /// press of the element there, which for a card holding its own buttons would press the
+    /// card. The click happens only once the Simulator's window is the one on top at that
+    /// point, so it can never land in another app.
+    static func touch(_ point: CGPoint) async throws {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { throw Problem.notRunning }
+        // Not in the middle of someone's typing or clicking elsewhere: wait for a pause.
+        for _ in 0..<40 where idleSeconds < 1.2 {
+            try await Task.sleep(for: .milliseconds(250))
+        }
+        let before = NSWorkspace.shared.frontmostApplication
+        // Since macOS 14 the app in front has to give way, or the Simulator stays behind it.
+        NSApplication.shared.yieldActivation(to: app)
+        app.activate()
+        // Whoever was working in another app gets it back right after the tap.
+        defer {
+            if let before, before.bundleIdentifier != bundleID {
+                NSApplication.shared.yieldActivation(to: before)
+                before.activate()
+            }
+        }
+        var onTop = false
+        for _ in 0..<20 {
+            if owner(at: point) == app.processIdentifier { onTop = true; break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        guard onTop else { throw Problem.covered }
+        let back = CGEvent(source: nil)?.location
+        let source = CGEventSource(stateID: .hidSystemState)
+        for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+            CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
+            try await Task.sleep(for: .milliseconds(60))
+        }
+        if let back { CGWarpMouseCursorPosition(back) }
+    }
+
+    /// How long since the last key press, click or mouse move on this Mac.
+    private static var idleSeconds: Double {
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+    }
+
+    /// Touches a point given in the iPhone's own points, off by a miss, as a tremor would.
+    static func touch(at point: CGPoint, miss: CGPoint, on screen: Screen) async throws {
+        try await touch(CGPoint(x: screen.frame.minX + (point.x + miss.x) * screen.scale, y: screen.frame.minY + (point.y + miss.y) * screen.scale))
+    }
+
+    /// The app whose window is on top at a point on the Mac's screen.
+    private static func owner(at point: CGPoint) -> pid_t? {
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        for window in windows where window[kCGWindowLayer as String] as? Int == 0 {
+            guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds), rect.contains(point) else { continue }
+            return window[kCGWindowOwnerPID as String] as? pid_t
+        }
+        return nil
     }
 
     private static func collect(_ node: AXUIElement, into elements: inout [Element], screen: CGRect, scale: CGFloat) {

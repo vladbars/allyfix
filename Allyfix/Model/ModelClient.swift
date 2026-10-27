@@ -80,6 +80,18 @@ struct ModelClient {
     /// Asks once and decodes the answer as `T`. `schema` must follow the strict rules: every
     /// object closed with `additionalProperties: false` and all its fields required.
     func answer<T: Decodable>(_ type: T.Type, schemaName: String, schema: [String: Any], instructions: String, input: [Part], maxTokens: Int = 16000) async throws -> (T, Usage) {
+        // Now and then the answer is prose despite the schema; asking again fixes it.
+        for _ in 1..<3 {
+            do {
+                return try await ask(type, schemaName: schemaName, schema: schema, instructions: instructions, input: input, maxTokens: maxTokens)
+            } catch is DecodingError {
+                continue
+            }
+        }
+        return try await ask(type, schemaName: schemaName, schema: schema, instructions: instructions, input: input, maxTokens: maxTokens)
+    }
+
+    private func ask<T: Decodable>(_ type: T.Type, schemaName: String, schema: [String: Any], instructions: String, input: [Part], maxTokens: Int) async throws -> (T, Usage) {
         let content: [[String: Any]] = input.map { part in
             switch part {
             case .text(let text): ["type": "text", "text": text]

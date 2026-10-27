@@ -127,6 +127,12 @@ struct AuditTests {
         let kept = try JSONDecoder().decode(CheckedScreen.self, from: JSONEncoder().encode(checked))
         #expect(kept.id == checked.id && kept.name == "Sets" && kept.issues == checked.issues)
         #expect(kept.screen.elements.first?.ax == nil)
+
+        // A screen kept by an earlier version, without the fields added since, still loads.
+        var older = try JSONSerialization.jsonObject(with: JSONEncoder().encode(checked)) as! [String: Any]
+        older["inked"] = nil
+        older["fix"] = nil
+        #expect(try JSONDecoder().decode(CheckedScreen.self, from: JSONSerialization.data(withJSONObject: older)).id == checked.id)
     }
 
     @Test func otherIssuesOnAMisplacedElementPointAtWhereItIsDrawn() {
@@ -167,5 +173,16 @@ struct AuditTests {
         let answer = try JSONDecoder().decode(Review.Answer.self, from: Data(json.utf8))
         #expect(Review.issues(from: answer, screen: screen, picture: picture).map(\.elements) == [[0]])
         #expect(Review.places(from: answer, screen: screen, picture: picture) == [1: CGRect(x: 140, y: 20, width: 40, height: 40)])
+    }
+
+    @Test func whatNobodySeesIsOneAreaNotManyFrames() {
+        let elements = (0..<3).map { element($0, label: "\($0)") }
+        let screen = Screen(device: "iPhone 17", frame: .init(x: 0, y: 0, width: 300, height: 600), scale: 1, elements: elements)
+        let hidden = Issue(kind: .hidden, severity: .serious, title: "", detail: "", wcag: "", elements: [0, 1, 2], frame: .zero, byModel: true)
+        let label = Issue(kind: .unlabeled, severity: .blocker, title: "", detail: "", wcag: "", elements: [0, 1], frame: .zero)
+        let checked = CheckedScreen(screen: screen, issues: [hidden, label])
+        #expect(checked.outline(of: hidden).frames == [CGRect(x: 0, y: 0, width: 200, height: 60)])
+        #expect(checked.outline(of: hidden).area)
+        #expect(checked.outline(of: label).frames.count == 2 && !checked.outline(of: label).area)
     }
 }

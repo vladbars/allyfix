@@ -14,6 +14,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: GBBG39BCT7
     ENABLE_HARDENED_RUNTIME: YES
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 targets:
   Allyfix:
     type: application
@@ -30,6 +31,9 @@ targets:
       properties:
         CFBundleDisplayName: Allyfix
         LSApplicationCategoryType: public.app-category.developer-tools
+        # React Native's dev server, for restarting the app under test, is plain http on localhost.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSHumanReadableCopyright: © 2026 Vladislav Baranov
   AllyfixTests:
     type: bundle.unit-test

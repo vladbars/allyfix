@@ -33,8 +33,9 @@ final class Overlay {
         }
         // Only the issue picked in the list: every frame at once over a live app is noise.
         let issue = checked.issues.first { $0.id == checker.selectedIssue }
-        let boxes = issue.map { issue in
-            checked.frames(of: issue).map { OverlayFrames.Box(rect: checked.screen.unit($0), blocker: issue.severity == .blocker, selected: true) }
+        let boxes: [OverlayFrames.Box] = issue.map { issue in
+            let outline = checked.outline(of: issue)
+            return outline.frames.map { OverlayFrames.Box(rect: checked.screen.unit($0), blocker: issue.severity == .blocker, area: outline.area) }
         } ?? []
         let drawn = checked.drawn(checker.selectedIssue).map { checked.screen.unit($0) }
         let frames = OverlayFrames(boxes: boxes, drawn: drawn)
@@ -66,7 +67,7 @@ struct OverlayFrames: View, Equatable {
         /// In parts of the screen, 0 to 1.
         let rect: CGRect
         let blocker: Bool
-        let selected: Bool
+        let area: Bool
     }
 
     let boxes: [Box]
@@ -77,7 +78,7 @@ struct OverlayFrames: View, Equatable {
         GeometryReader { geometry in
             ForEach(Array(boxes.enumerated()), id: \.offset) { _, box in
                 let rect = box.rect.scaled(to: geometry.size)
-                IssueFrame(blocker: box.blocker, selected: box.selected)
+                IssueFrame(blocker: box.blocker, area: box.area)
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: rect.midY)
             }

@@ -12,6 +12,12 @@ enum History {
             checked.reviewing = false
             checked.jpeg = try? Data(contentsOf: picture(checked.id))
             checked.picture = checked.jpeg.flatMap(NSImage.init(data:))
+            // Screens kept before places were found in the pixels get them now.
+            if checked.inked == nil, let jpeg = checked.jpeg {
+                checked.inked = checked.screen.elements.filter(\.isSliver).reduce(into: [:]) { places, element in
+                    places[element.id] = Ink.below(element.frame, on: checked.screen, picture: jpeg)
+                }
+            }
             return checked
         }
         .sorted { $0.date < $1.date }
