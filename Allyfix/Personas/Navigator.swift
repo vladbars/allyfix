@@ -6,10 +6,10 @@ enum Navigator {
     static let mostSteps = 5
 
     enum Problem: LocalizedError {
-        case lost(String)
+        case lost(String, saw: String)
         var errorDescription: String? {
             switch self {
-            case .lost(let name): "Allyfix could not find its way back to \(name) after restarting the app."
+            case .lost(let name, let saw): "Allyfix restarted the app but could not get back to \(name); it saw \(saw). Open \(name) in the Simulator and try again."
             }
         }
     }
@@ -42,15 +42,13 @@ enum Navigator {
     /// replayed when known and learned when not.
     static func reach(_ target: Screen, picture: Data, name: String, route: inout [String], client: ModelClient) async throws -> ModelClient.Usage {
         var usage = ModelClient.Usage()
-        // A restarted app may still be loading behind a splash screen, which has nothing for
-        // VoiceOver: wait until the screen is there and holds still before going anywhere.
-        var last: [String] = [], still = 0
-        for _ in 0..<30 {
+        // A restarted app may still be loading behind a splash screen; Expo Go takes 20
+        // seconds and more. Wait until there is something to press and it holds still.
+        if arrived(at: target) { return usage }
+        try await Explorer.waitForApp()
+        // A screen still settling, an animation, a late reload: give it a moment more.
+        for _ in 0..<40 {
             if arrived(at: target) { return usage }
-            let now = (try? Simulator.screen())?.elements.map(\.label) ?? []
-            still = !now.isEmpty && now == last ? still + 1 : 0
-            if still >= 3 { break }
-            last = now
             try await Task.sleep(for: .milliseconds(500))
         }
 
@@ -84,7 +82,8 @@ enum Navigator {
             if arrived(at: target) { return usage }
         }
         route = []
-        throw Problem.lost(name)
+        let saw = (try? Simulator.screen())?.elements.prefix(3).map { "\u{201C}\($0.label.withIconsNamed)\u{201D}" }.joined(separator: ", ")
+        throw Problem.lost(name, saw: saw.map { "a screen starting with \($0)" } ?? "no app screen")
     }
 
     static let schema: [String: Any] = [

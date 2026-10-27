@@ -136,7 +136,8 @@ enum Simulator {
                     height: frame.height / scale
                 ),
                 canPress: (actions as? [String] ?? []).contains(kAXPressAction),
-                ax: child
+                ax: child,
+                selected: child.attribute(kAXSelectedAttribute) as Bool?
             ))
             collect(child, into: &elements, screen: screen, scale: scale)
         }

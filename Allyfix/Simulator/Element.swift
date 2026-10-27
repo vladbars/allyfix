@@ -19,9 +19,12 @@ struct Element: Identifiable, Codable {
     let canPress: Bool
     /// The live element in the Simulator; none for a screen kept from an earlier launch.
     var ax: AXUIElement?
+    /// Whether VoiceOver announces it as selected: the current tab, the chosen filter.
+    /// Optional, so screens kept before it was read still load.
+    var selected: Bool?
 
     private enum CodingKeys: CodingKey {
-        case id, role, subrole, label, value, frame, pointFrame, canPress
+        case id, role, subrole, label, value, frame, pointFrame, canPress, selected
     }
 
     /// Something a person can act on: what VoiceOver would offer to activate.

@@ -31,24 +31,38 @@ enum Fixer {
         let time: Double
         /// The same screen checked again once the app reloaded.
         var after: CheckedScreen.ID?
+        /// The problems the edits say they fix, by `Checker.fixKey`.
+        var fixed: [String]?
+        /// The people's failed runs the fix was asked to fix; only they try again after it.
+        var stuck: [UUID]?
 
         var files: Set<String> { Set(applied.map(\.path)) }
     }
 
     static func run(_ checked: CheckedScreen, project: Project, client: ModelClient) async throws -> Run {
+        try await run([checked], project: project, client: client)
+    }
+
+    /// Fixes what was chosen on several screens at once: Muse Wonder sees each screen and the
+    /// whole project, and answers with one set of edits, committed on one branch.
+    static func run(_ screens: [CheckedScreen], project: Project, client: ModelClient) async throws -> Run {
         let start = Date()
         let sources = try project.sources()
         var input: [ModelClient.Part] = []
-        if let jpeg = checked.jpeg { input.append(.jpeg(jpeg)) }
-        input.append(.text(describe(checked)))
+        for (number, checked) in screens.enumerated() {
+            input.append(.text("Screen \(number + 1): \(checked.title)"))
+            if let jpeg = checked.jpeg { input.append(.jpeg(jpeg)) }
+        }
+        input.append(.text(describe(screens)))
         input.append(.text(sources.map { "=== \($0.path)\n\($0.text)" }.joined(separator: "\n\n")))
 
         var wonder = client
         wonder.model = model
         wonder.reasoning = "medium"
-        let (answer, usage) = try await wonder.answer(Answer.self, schemaName: "fixes", schema: schema, instructions: instructions, input: input, maxTokens: 32000)
+        let (answer, usage) = try await wonder.answer(Answer.self, schemaName: "fixes", schema: schema, instructions: instructions, input: input, maxTokens: 48000)
 
-        let branch = "allyfix/\(slug(checked.title))-\(Int(Date().timeIntervalSince1970) % 100_000)"
+        let name = screens.count == 1 ? slug(screens[0].title) : "\(screens.count)-screens"
+        let branch = "allyfix/\(name)-\(Int(Date().timeIntervalSince1970) % 100_000)"
         let base = try project.startBranch(branch)
         var applied: [Edit] = [], failed: [String] = []
         for edit in answer.edits {
@@ -63,8 +77,15 @@ enum Fixer {
             try? project.undo(branch: branch, base: base)
             throw Project.Problem.edit(failed.first ?? "No changes were proposed. \(answer.summary)")
         }
-        try project.commit("Make \(checked.title) work with VoiceOver\n\n\(answer.summary)\n\n" + applied.map { "- \($0.why)" }.joined(separator: "\n"))
-        return Run(branch: branch, base: base, summary: answer.summary, applied: applied, failed: failed, usage: usage, time: Date().timeIntervalSince(start))
+        // Problems are numbered across the screens in the order they were described.
+        let numbered = screens.flatMap { checked in checked.issues.map { Checker.fixKey(checked.id, $0.id) } }
+        let fixed = Set(applied.flatMap(\.issues)).compactMap { $0 >= 1 && $0 <= numbered.count ? numbered[$0 - 1] : nil }
+        let titles = screens.map(\.title).joined(separator: ", ")
+        try project.commit("Make \(titles) work with VoiceOver\n\n\(answer.summary)\n\n" + applied.map { "- \($0.why)" }.joined(separator: "\n"))
+        var run = Run(branch: branch, base: base, summary: answer.summary, applied: applied, failed: failed, usage: usage, time: Date().timeIntervalSince(start))
+        run.fixed = fixed
+        run.stuck = screens.flatMap { ($0.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }.map(\.id) }
+        return run
     }
 
     static let instructions = """
@@ -99,33 +120,42 @@ enum Fixer {
     sentences for the pull request, saying what changed for VoiceOver users.
     """
 
-    /// The tasks people could not do and how they got stuck, then the problems found, each
-    /// with what VoiceOver reads for the elements it is about.
-    static func describe(_ checked: CheckedScreen) -> String {
-        var lines = ["Screen: \(checked.title)" + (checked.section.map { " (tab \($0))" } ?? ""), ""]
-        let stuck = (checked.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }
-        if !stuck.isEmpty {
-            lines.append("Tasks people could not do:")
-            for run in stuck {
-                lines.append("- \(run.persona.title) (\(run.persona.perceives.lowercased())) tried \"\(run.task.goal)\" and got stuck: \(run.why ?? "")")
-                for step in run.steps {
-                    lines.append("    \(step.action)\(step.target.map { " \($0.withIconsNamed)" } ?? ""): \(step.thought)")
+    /// For each screen: the tasks people could not do and how they got stuck, then the
+    /// problems found, each with what VoiceOver reads for the elements it is about. Problems
+    /// are numbered across all screens, so an edit can say which it fixes.
+    static func describe(_ screens: [CheckedScreen]) -> String {
+        var lines: [String] = []
+        var number = 0
+        for (index, checked) in screens.enumerated() {
+            lines.append("## Screen \(index + 1): \(checked.title)" + (checked.section.map { " (tab \($0))" } ?? ""))
+            if let route = checked.route, !route.isEmpty { lines.append("Reached from launch by tapping: " + route.joined(separator: " → ")) }
+            lines.append("")
+            let stuck = (checked.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }
+            if !stuck.isEmpty {
+                lines.append("Tasks people could not do:")
+                for run in stuck {
+                    lines.append("- \(run.persona.title) (\(run.persona.perceives.lowercased())) tried \"\(run.task.goal)\" and got stuck: \(run.why ?? "")")
+                    for step in run.steps {
+                        lines.append("    \(step.action)\(step.target.map { " \($0.withIconsNamed)" } ?? ""): \(step.thought)")
+                    }
+                }
+                lines.append("")
+            }
+            // The interface's own words, so labels match its language and not the content's.
+            let own = checked.screen.elements.filter { $0.isControl && !$0.readableLabel.isEmpty && $0.readableLabel.count < 30 }.map(\.readableLabel).prefix(12)
+            if !own.isEmpty { lines += ["The app's own button labels, in its interface language: " + own.joined(separator: " · "), ""] }
+            if !checked.issues.isEmpty { lines.append("Problems:") }
+            for issue in checked.issues {
+                number += 1
+                lines.append("\(number). [\(issue.severity == .blocker ? "blocker" : "serious")] \(issue.title)")
+                lines.append("   \(issue.detail)")
+                if let suggestion = issue.suggestion { lines.append("   Suggested label: \(suggestion)") }
+                for id in issue.elements.prefix(6) {
+                    guard let element = checked.screen.elements.first(where: { $0.id == id }) else { continue }
+                    lines.append("   Element: \(element.role.replacingOccurrences(of: "AX", with: "")) reading \"\(element.label.withIconsNamed)\"")
                 }
             }
             lines.append("")
-        }
-        // The interface's own words, so labels match its language and not the content's.
-        let own = checked.screen.elements.filter { $0.isControl && !$0.readableLabel.isEmpty && $0.readableLabel.count < 30 }.map(\.readableLabel).prefix(12)
-        if !own.isEmpty { lines += ["The app's own button labels, in its interface language: " + own.joined(separator: " · "), ""] }
-        lines.append("Problems:")
-        for (number, issue) in checked.issues.enumerated() {
-            lines.append("\(number + 1). [\(issue.severity == .blocker ? "blocker" : "serious")] \(issue.title)")
-            lines.append("   \(issue.detail)")
-            if let suggestion = issue.suggestion { lines.append("   Suggested label: \(suggestion)") }
-            for id in issue.elements.prefix(6) {
-                guard let element = checked.screen.elements.first(where: { $0.id == id }) else { continue }
-                lines.append("   Element: \(element.role.replacingOccurrences(of: "AX", with: "")) reading \"\(element.label.withIconsNamed)\"")
-            }
         }
         return lines.joined(separator: "\n")
     }
@@ -151,6 +181,9 @@ enum Fixer {
 }
 
 extension String {
+    /// "Save der Bahnhof" as it reads mid-sentence: "save der Bahnhof".
+    var lowercasedFirst: String { prefix(1).lowercased() + dropFirst() }
+
     /// Icon-font glyphs, which show as boxes and are read as nothing, written as "<icon>".
     var withIconsNamed: String {
         unicodeScalars.reduce(into: "") { text, scalar in
