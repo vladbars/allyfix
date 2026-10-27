@@ -227,7 +227,7 @@ enum Audit {
     /// Roughly what VoiceOver says for an element.
     static func spoken(_ element: Element) -> String {
         let role = element.subrole == "AXSwitch" ? "switch button" : element.isControl ? "button" : ""
-        return [element.readableLabel, element.value, role].filter { !$0.isEmpty }.joined(separator: ", ").ifEmpty("…")
+        return [element.readableLabel, element.value, role, element.selected == true ? "selected" : ""].filter { !$0.isEmpty }.joined(separator: ", ").ifEmpty("…")
     }
 }
 

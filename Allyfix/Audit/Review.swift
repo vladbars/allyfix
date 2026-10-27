@@ -16,8 +16,9 @@ enum Review {
         let name: String
         /// The tab it is under, as the selected tab is drawn; nil without a tab bar.
         let section: String?
-        /// Where elements whose frames miss them are really drawn, on the Mac's screen.
-        let places: [Int: CGRect]
+        /// Where elements whose frames miss them are really drawn, on the Mac's screen;
+        /// optional, so checks kept before it existed still load.
+        let places: [Int: CGRect]?
         let usage: ModelClient.Usage
         /// In seconds.
         let time: Double
