@@ -35,17 +35,21 @@ export function CardsScreen() {
       </View>
 
       <View style={styles.filters}>
-        {filters.map((name) =>
-          name === filter ? (
-            <View key={name} style={[styles.chip, styles.chipOn]}>
-              <Text style={[styles.chipText, styles.chipTextOn]}>{name}</Text>
-            </View>
-          ) : (
-            <Pressable key={name} style={styles.chip} onPress={() => setFilter(name)}>
-              <Text style={styles.chipText}>{name}</Text>
+        {filters.map((name) => {
+          const selected = name === filter;
+          return (
+            <Pressable
+              key={name}
+              style={[styles.chip, selected && styles.chipOn]}
+              onPress={() => setFilter(name)}
+              accessibilityRole="button"
+              accessibilityLabel={name}
+              accessibilityState={{ selected }}
+            >
+              <Text style={[styles.chipText, selected && styles.chipTextOn]}>{name}</Text>
             </Pressable>
-          ),
-        )}
+          );
+        })}
       </View>
 
       <View style={styles.progress}>
