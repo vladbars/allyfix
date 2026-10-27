@@ -39,6 +39,17 @@ struct FixTests {
         #expect(try project.sources().map(\.path) == ["Card.tsx"])
     }
 
+    @Test func keepingAFixBringsItIntoTheBranchItStartedFrom() throws {
+        let project = try project()
+        let base = try project.startBranch("allyfix/card-2")
+        try project.edit("Card.tsx", find: "<Icon />", replace: "<Icon accessibilityElementsHidden />")
+        try project.git("-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-q", "-am", "fix")
+        try project.keep(branch: "allyfix/card-2", base: base)
+        #expect(try project.branch == "main")
+        #expect(try String(contentsOf: project.folder.appending(path: "Card.tsx"), encoding: .utf8).contains("accessibilityElementsHidden"))
+        #expect(!(try project.git("branch", "--list", "allyfix/card-2")).contains("card-2"))
+    }
+
     @Test func aDirtyProjectIsNotTouched() throws {
         let project = try project()
         try "changed".write(to: project.folder.appending(path: "Card.tsx"), atomically: true, encoding: .utf8)

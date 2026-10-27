@@ -67,8 +67,15 @@ struct FixPage: View {
                     Button("Verify Now") { checker.checkAfterFix(of: before.id) }
                         .help("Opens the screen from a fresh start, checks it, and has the people who were stuck try again")
                 }
-                Button("Undo Fix", role: .destructive) { checker.undoFix(of: before.id) }
-                    .help("Throws the change away: back to \(run.base)")
+                if run.kept == true {
+                    Label("Kept in \(run.base)", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                } else {
+                    Button("Undo Fix", role: .destructive) { checker.undoFix(of: before.id) }
+                        .help("Throws the change away: back to \(run.base)")
+                    Button("Keep Fix") { checker.keepFix(of: before.id) }
+                        .buttonStyle(.borderedProminent)
+                        .help("Merges the fix into \(run.base), switches back to \(run.base) and deletes \(run.branch)")
+                }
             }
             if let fixing = checker.fixing, fixing.screen == before.id {
                 HStack(spacing: 8) {

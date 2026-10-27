@@ -76,6 +76,17 @@ struct Project {
         _ = try git("branch", "-D", branch)
     }
 
+    /// Brings the fixes' branch into `base` and goes back there, then drops the branch: the
+    /// fix is kept, and the repository is where the developer left it. A straight move
+    /// forward when `base` has not moved; a merge when it has.
+    func keep(branch: String, base: String) throws {
+        _ = try git("switch", "-q", base)
+        if (try? git("merge", "-q", "--ff-only", branch)) == nil {
+            _ = try git("merge", "-q", "--no-edit", branch)
+        }
+        _ = try git("branch", "-d", branch)
+    }
+
     func diff(from base: String) throws -> String {
         try git("diff", base, "--stat")
     }

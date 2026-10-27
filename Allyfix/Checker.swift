@@ -656,6 +656,27 @@ final class Checker {
         }
     }
 
+    /// The fix whose branch an app's source has checked out now, still to keep or undo.
+    func openFix(of app: String) -> CheckedScreen? {
+        guard let project = project(for: app), let branch = try? project.branch, branch.hasPrefix("allyfix/") else { return nil }
+        return fixes(of: app).first { $0.fix?.branch == branch && $0.fix?.kept != true }
+    }
+
+    /// Keeps a fix: brings it into the branch it started from, goes back there, and drops its
+    /// branch, on every screen the fix touched.
+    func keepFix(of id: CheckedScreen.ID) {
+        guard let checked = screens.first(where: { $0.id == id }), let run = checked.fix, let project = project(for: Self.app(of: checked)) else { return }
+        do {
+            try project.keep(branch: run.branch, base: run.base)
+            for fixed in screens where fixed.fix?.branch == run.branch {
+                update(fixed.id) { $0.fix?.kept = true }
+                if let kept = screens.first(where: { $0.id == fixed.id }) { History.save(kept) }
+            }
+        } catch {
+            fixProblem = error.localizedDescription
+        }
+    }
+
     /// Throws a fix away: back to the branch it started from, and the checks after it gone,
     /// on every screen the fix touched.
     func undoFix(of id: CheckedScreen.ID) {

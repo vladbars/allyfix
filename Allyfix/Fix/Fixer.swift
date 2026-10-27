@@ -35,6 +35,8 @@ enum Fixer {
         var fixed: [String]?
         /// The people's failed runs the fix was asked to fix; only they try again after it.
         var stuck: [UUID]?
+        /// Brought into the branch it started from, and its own branch gone.
+        var kept: Bool?
 
         var files: Set<String> { Set(applied.map(\.path)) }
     }

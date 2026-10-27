@@ -9,6 +9,10 @@ struct ContentView: View {
                 AppList(checker: checker)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 230)
             } detail: {
+                VStack(spacing: 0) {
+                if let app = checker.selectedApp, let open = checker.openFix(of: app), let run = open.fix {
+                    OpenFixBar(checker: checker, app: app, fixed: open, run: run)
+                }
                 switch checker.selection {
                 case .app(let app)?:
                     AppOverview(checker: checker, app: app)
@@ -18,6 +22,7 @@ struct ContentView: View {
                     if let fixed = checker.screens.first(where: { $0.id == id && $0.fix != nil }) { FixPage(checker: checker, before: fixed) }
                 case nil:
                     start
+                }
                 }
             }
             .toolbar {
@@ -75,6 +80,33 @@ struct ContentView: View {
         .padding(32)
         .frame(maxWidth: 420, maxHeight: .infinity)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// While an app's source is on a fix's branch: say so, and offer to keep or undo it, so the
+/// repository is never left on it unnoticed.
+private struct OpenFixBar: View {
+    let checker: Checker
+    let app: String
+    let fixed: CheckedScreen
+    let run: Fixer.Run
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.triangle.branch").foregroundStyle(.orange)
+            Text("\(app)'s source is on **\(run.branch)**, with the fix of \(fixed.title). Keep it to bring it into \(run.base), or undo it.")
+                .lineLimit(2)
+            Spacer()
+            Button("Show Fix") { checker.selection = .fix(fixed.id) }
+            Button("Undo Fix") { checker.undoFix(of: fixed.id) }
+            Button("Keep Fix") { checker.keepFix(of: fixed.id) }
+                .buttonStyle(.borderedProminent)
+                .help("Merges the fix into \(run.base), switches back to \(run.base) and deletes \(run.branch)")
+        }
+        .font(.callout)
+        .padding(.horizontal, 14).padding(.vertical, 9)
+        .background(Color.orange.opacity(0.12))
+        .overlay(alignment: .bottom) { Divider() }
     }
 }
 
