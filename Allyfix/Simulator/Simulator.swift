@@ -44,9 +44,18 @@ enum Simulator {
         throw Problem.noDevice
     }
 
+    /// Where the iPhone's screen is on the Mac's screen now, read cheaply enough to follow
+    /// the Simulator window as it moves.
+    static func contentFrame() -> CGRect? {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return nil }
+        let windows: [AXUIElement] = AXUIElementCreateApplication(app.processIdentifier).attribute(kAXWindowsAttribute) ?? []
+        return windows.lazy.compactMap { $0.firstDescendant(where: { $0.attribute(kAXSubroleAttribute) == "iOSContentGroup" })?.frame }.first
+    }
+
     /// Activates an element the way a VoiceOver double tap does.
     static func press(_ element: Element) -> Bool {
-        AXUIElementPerformAction(element.ax, kAXPressAction as CFString) == .success
+        guard let ax = element.ax else { return false }
+        return AXUIElementPerformAction(ax, kAXPressAction as CFString) == .success
     }
 
     private static func collect(_ node: AXUIElement, into elements: inout [Element], screen: CGRect, scale: CGFloat) {
