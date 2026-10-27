@@ -1,0 +1,49 @@
+name: Allyfix
+options:
+  bundleIdPrefix: dev.allyfix
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # A stable signature keeps the Accessibility permission across rebuilds.
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: GBBG39BCT7
+    ENABLE_HARDENED_RUNTIME: YES
+targets:
+  Allyfix:
+    type: application
+    platform: macOS
+    sources: [Allyfix]
+    entitlements:
+      path: Allyfix/Allyfix.entitlements
+      # Reading and pressing in the Simulator, and running `xcrun simctl`, cannot be
+      # done from the App Sandbox.
+      properties:
+        com.apple.security.app-sandbox: false
+    info:
+      path: Allyfix/Info.plist
+      properties:
+        CFBundleDisplayName: Allyfix
+        LSApplicationCategoryType: public.app-category.developer-tools
+        NSHumanReadableCopyright: © 2026 Vladislav Baranov
+  AllyfixTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [AllyfixTests]
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Allyfix
+schemes:
+  Allyfix:
+    build:
+      targets:
+        Allyfix: all
+        AllyfixTests: [test]
+    test:
+      targets: [AllyfixTests]
