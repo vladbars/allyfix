@@ -46,4 +46,21 @@ struct PersonaTests {
         #expect(Persona.colorVision.tremor == [.zero])
         #expect(!Persona.people.contains(.control) && Persona.people.count == 6)
     }
+
+    @Test func textInsideACardGetsItsOwnMarkAndTextOnItsOwnButtonDoesNot() {
+        let card = CGRect(x: 0, y: 100, width: 300, height: 400)
+        let save = CGRect(x: 20, y: 520, width: 120, height: 44)
+        let screen = Screen(device: "iPhone 17", frame: .init(x: 0, y: 0, width: 300, height: 650), scale: 1, elements: [
+            Element(id: 0, role: "AXGenericElement", subrole: "", label: "der Bahnhof, Learn again, I know it", value: "", frame: card, pointFrame: card, canPress: true),
+            Element(id: 1, role: "AXButton", subrole: "", label: "Save", value: "", frame: save, pointFrame: save, canPress: true),
+        ])
+        let picture = Picture(jpeg: Data(), size: .init(width: 300, height: 650))
+        let lines = [
+            Reading.Line(text: "I know it", box: CGRect(x: 180, y: 440, width: 80, height: 20)),
+            Reading.Line(text: "Save", box: CGRect(x: 60, y: 532, width: 40, height: 20)),
+        ]
+        let seen = Persona.colorVision.perceive(screen, picture: picture, lines: lines)
+        #expect(seen.spots == [Persona.firstSpot: CGPoint(x: 220, y: 450)])
+        #expect(Persona.screenReader.perceive(screen, picture: picture, lines: lines).spots.isEmpty)
+    }
 }

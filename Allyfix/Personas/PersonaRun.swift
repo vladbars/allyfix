@@ -57,6 +57,14 @@ enum Restart {
     static func app() async throws {
         let before = (try? Simulator.screen())?.elements.map(\.label) ?? []
         let ports = await devServers()
+        // Expo Go shows its own tools button over the app after a reload; opened afresh with
+        // the right address, it does not.
+        if !ports.isEmpty, await foregroundApp() == "host.exp.Exponent" {
+            simctl("terminate", "booted", "host.exp.Exponent")
+            simctl("openurl", "booted", "exp://127.0.0.1:\(ports[0])?__expo_disable_fab=1&__expo_disable_onboarding=1")
+            guard try await settle(changedFrom: before) else { throw Problem.notBack }
+            return
+        }
         if !ports.isEmpty {
             for port in ports { await reload(port) }
             // A reload that reached this app blanks the screen for a moment; one that did not
@@ -129,6 +137,24 @@ enum Restart {
 
     /// The app iOS last brought to the foreground, from SpringBoard's log.
     @concurrent nonisolated static func foregroundApp() async -> String? {
+        await lookUpForegroundApp()
+    }
+
+    /// The app under test does not change during a check or a test; asking the log once is
+    /// enough. A new check starts over, since the Simulator may show another app by then.
+    private static var knownApp: String?
+
+    static func forgetApp() {
+        knownApp = nil
+    }
+
+    private static func lookUpForegroundApp() async -> String? {
+        if let knownApp { return knownApp }
+        knownApp = await readForegroundApp()
+        return knownApp
+    }
+
+    @concurrent nonisolated private static func readForegroundApp() async -> String? {
         let log = simctl("spawn", "booted", "log", "show", "--last", "1d", "--style", "compact", "--predicate",
                          #"subsystem == "com.apple.FrontBoard" AND eventMessage CONTAINS "Scene lifecycle state did change: Foreground""#)
         return log.split(separator: "\n").reversed().lazy.compactMap { line -> String? in
@@ -241,7 +267,8 @@ enum Personas {
         var taps = 0
 
         for _ in 0..<mostSteps {
-            let seen = persona.perceive(screen, picture: picture)
+            let lines = persona.sees ? await Reading.lines(in: picture.jpeg) : []
+            let seen = persona.perceive(screen, picture: picture, lines: lines)
             var input: [ModelClient.Part] = []
             if let jpeg = seen.jpeg { input.append(.jpeg(jpeg)) }
             input.append(.text(prompt(task, run: run, perceived: seen.text)))
@@ -259,7 +286,11 @@ enum Personas {
                 // A hand with a tremor touches for real either way, off its aim by the next miss.
                 let index = taps % persona.tremor.count
                 taps += 1
-                if let id = move.element, let element = screen.elements.first(where: { $0.id == id }) {
+                if let id = move.element, let spot = seen.spots[id] {
+                    // Text with no element of its own: only a real touch reaches it.
+                    step = step.with(target: "mark \(id)", point: spot, miss: index)
+                    try await Simulator.touch(at: spot, miss: persona.tremor[index], on: screen)
+                } else if let id = move.element, let element = screen.elements.first(where: { $0.id == id }) {
                     let aim = CGPoint(x: element.pointFrame.midX, y: element.pointFrame.midY)
                     step = step.with(target: "mark \(id)", label: persona == .dexterity ? nil : element.label, point: aim, miss: index)
                     if persona == .dexterity || !Simulator.press(element) {

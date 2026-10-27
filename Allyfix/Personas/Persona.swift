@@ -131,11 +131,38 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         return [CGPoint(x: 7, y: -6), CGPoint(x: -8, y: 5), CGPoint(x: 4, y: 9), CGPoint(x: -9, y: -4), CGPoint(x: 6, y: 7), CGPoint(x: -5, y: -8)]
     }
 
+    /// What a persona gets of a screen, and where marks that are not elements point.
+    struct Perceived {
+        let text: String
+        let jpeg: Data?
+        /// Marks on text the app gives no element of its own, by mark number: where to touch,
+        /// in iPhone points.
+        var spots: [Int: CGPoint] = [:]
+    }
+
+    /// The first number of marks put on text read off the screen, apart from element ids.
+    static let firstSpot = 1000
+
     /// The screen as this persona perceives it: words for one, a picture for the others.
-    func perceive(_ screen: Screen, picture: Picture) -> (text: String, jpeg: Data?) {
+    /// `lines` is the text read off the screenshot; a line that sits inside a big element
+    /// rather than its own, like a button merged into a card, gets a mark of its own, since a
+    /// seeing person can touch it all the same.
+    func perceive(_ screen: Screen, picture: Picture, lines: [Reading.Line] = []) -> Perceived {
         guard sees else {
             let heard = screen.elements.map { "\($0.id). \(Audit.spoken($0).withIconsNamed.replacingOccurrences(of: "<icon>", with: ""))" }
-            return ("What VoiceOver reads, in swipe order (number. what you hear):\n" + heard.joined(separator: "\n"), nil)
+            return Perceived(text: "What VoiceOver reads, in swipe order (number. what you hear):\n" + heard.joined(separator: "\n"), jpeg: nil)
+        }
+        var spots: [Int: CGPoint] = [:], extra: [(Int, CGRect)] = []
+        for (index, line) in lines.enumerated() where line.box.minY > picture.size.height * 0.06 {
+            let box = Review.toScreen(line.box, screen: screen, picture: picture)
+            let center = CGPoint(x: box.midX, y: box.midY)
+            let own = screen.elements.filter { $0.frame.contains(center) }.min { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
+            // Its own element says it, or is not much bigger than it: not hidden in something else.
+            if let own, (own.readableLabel.localizedCaseInsensitiveContains(line.text) && line.text.count * 2 >= own.readableLabel.count)
+                || own.frame.width * own.frame.height < box.width * box.height * 20 { continue }
+            let id = Self.firstSpot + index
+            spots[id] = CGPoint(x: (center.x - screen.frame.minX) / screen.scale, y: (center.y - screen.frame.minY) / screen.scale)
+            extra.append((id, line.box))
         }
         let seen: Data
         switch self {
@@ -143,17 +170,17 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         case .colorVision: seen = Self.deuteranopia(picture.jpeg)
         default: seen = picture.jpeg
         }
-        return ("""
+        return Perceived(text: """
             Numbered marks sit on things on the screen, whether they can be touched or not; touch \
             one by its mark. To touch something without a mark, give x and y in the \(Int(picture.size.width))×\(Int(picture.size.height)) pixel screenshot.
-            """, Self.marked(seen, screen: screen, picture: picture))
+            """, jpeg: Self.marked(seen, screen: screen, picture: picture, extra: extra), spots: spots)
     }
 
     /// Marks numbered by element id on what is on the screen, so a seeing persona points at a
     /// mark instead of guessing pixels, which models do badly. On text as well as controls, so
     /// a mark does not tell what can be pressed; a mark that would cover another is left out.
     /// Neutral black and white, drawn after any filter, so they tell nothing by color.
-    static func marked(_ jpeg: Data, screen: Screen, picture: Picture) -> Data {
+    static func marked(_ jpeg: Data, screen: Screen, picture: Picture, extra: [(Int, CGRect)] = []) -> Data {
         guard let image = NSImage(data: jpeg), let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return jpeg }
         let width = cgImage.width, height = cgImage.height
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return jpeg }
@@ -161,12 +188,16 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
         let font = NSFont.monospacedDigitSystemFont(ofSize: 15, weight: .bold)
         var placed: [CGRect] = []
-        for element in screen.elements where element.frame.width > 2 && element.frame.height > 2 && screen.frame.contains(CGPoint(x: element.frame.midX, y: element.frame.midY)) {
-            let box = Review.toPicture(element.frame, screen: screen, picture: picture)
+        let elements = screen.elements.filter { $0.frame.width > 2 && $0.frame.height > 2 && screen.frame.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+        // Text without an element of its own first, so its mark is not crowded out.
+        let marks = extra + elements.map { ($0.id, Review.toPicture($0.frame, screen: screen, picture: picture)) }
+        for (id, box) in marks {
             // CoreGraphics counts from the bottom.
-            let label = NSAttributedString(string: "\(element.id)", attributes: [.font: font, .foregroundColor: NSColor.white])
+            let label = NSAttributedString(string: "\(id)", attributes: [.font: font, .foregroundColor: NSColor.white])
             let size = label.size()
-            let tag = CGRect(x: box.minX, y: CGFloat(height) - box.minY - size.height - 4, width: size.width + 8, height: size.height + 4)
+            // Just above the thing, so the mark does not hide its words; inside it at the top edge.
+            let above = box.minY - size.height - 4 >= 0 ? box.minY : box.minY + size.height + 4
+            let tag = CGRect(x: box.minX, y: CGFloat(height) - above, width: size.width + 8, height: size.height + 4)
             guard !placed.contains(where: { $0.intersects(tag) }) else { continue }
             placed.append(tag)
             context.setFillColor(NSColor.black.withAlphaComponent(0.85).cgColor)

@@ -140,6 +140,7 @@ final class Checker {
     /// Reads the screen and lists it, before the model has looked.
     private func capture(fixOf before: CheckedScreen.ID? = nil) throws -> CheckedScreen {
         let screen = try Simulator.screen()
+        if before == nil { Restart.forgetApp() }
         // The same screen again replaces the earlier check of it, unless that one was fixed.
         let labels = screen.elements.map(\.label)
         remove { $0.screen.elements.map(\.label) == labels && $0.fix == nil }

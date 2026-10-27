@@ -42,7 +42,17 @@ enum Navigator {
     /// replayed when known and learned when not.
     static func reach(_ target: Screen, picture: Data, name: String, route: inout [String], client: ModelClient) async throws -> ModelClient.Usage {
         var usage = ModelClient.Usage()
-        if arrived(at: target) { return usage }
+        // A restarted app may still be loading behind a splash screen, which has nothing for
+        // VoiceOver: wait until the screen is there and holds still before going anywhere.
+        var last: [String] = [], still = 0
+        for _ in 0..<30 {
+            if arrived(at: target) { return usage }
+            let now = (try? Simulator.screen())?.elements.map(\.label) ?? []
+            still = !now.isEmpty && now == last ? still + 1 : 0
+            if still >= 3 { break }
+            last = now
+            try await Task.sleep(for: .milliseconds(500))
+        }
 
         if !route.isEmpty {
             for label in route {
