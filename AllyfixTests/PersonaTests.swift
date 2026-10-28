@@ -64,3 +64,40 @@ struct PersonaTests {
         #expect(Persona.screenReader.perceive(screen, picture: picture, lines: lines).spots.isEmpty)
     }
 }
+
+@MainActor
+struct TextSizeTests {
+    let task = ScreenTask(goal: "Open the Weather set", success: "The Weather set is open")
+
+    func search(breaksFrom first: TextSize?) async throws -> (PersonaRun.Boundary, [TextSize]) {
+        var tried: [TextSize] = []
+        let (boundary, _) = try await Personas.boundary(of: task, upTo: .accessibilityExtraLarge) { size in
+            tried.append(size)
+            var run = PersonaRun(persona: .control, task: task)
+            run.achieved = first.map { size < $0 } ?? true
+            run.why = "The set row is cut off at \(size.percent)%"
+            return run
+        }
+        return (boundary, tried)
+    }
+
+    @Test func findsTheFirstSizeThatBreaksInAFewTries() async throws {
+        let (boundary, tried) = try await search(breaksFrom: .extraExtraExtraLarge)
+        #expect(boundary.holds == .extraExtraLarge)
+        #expect(boundary.breaks == .extraExtraExtraLarge)
+        #expect(boundary.why == "The set row is cut off at 135%")
+        #expect(tried.count <= 4)
+    }
+
+    @Test func aLayoutThatHoldsIsTriedOnce() async throws {
+        let (boundary, tried) = try await search(breaksFrom: nil)
+        #expect(boundary.holds == .accessibilityExtraLarge && boundary.breaks == nil)
+        #expect(tried == [.accessibilityExtraLarge])
+    }
+
+    @Test func sizesReadAsPercent() {
+        #expect(TextSize.large.title == "default text size")
+        #expect(TextSize.accessibilityLarge.title == "text at 194%")
+        #expect(Persona.lowVision.textSize! > .extraExtraExtraLarge)
+    }
+}

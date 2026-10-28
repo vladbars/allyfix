@@ -63,8 +63,10 @@ struct ChoosingTests {
         let element = Element(id: 0, role: "AXButton", subrole: "", label: "", value: "", frame: frame, pointFrame: frame, canPress: true)
         let screen = Screen(device: "iPhone", frame: .init(x: 0, y: 0, width: 300, height: 650), scale: 1, elements: [element])
         let checked = CheckedScreen(screen: screen, issues: Audit.run(screen.elements) + Audit.targets([element]))
+        #expect(checker.chosen(checked).issues.isEmpty)
+        checker.pick(.all, on: [checked])
         #expect(checker.chosen(checked).issues.count == checked.issues.count)
-        checker.excluded.insert(Checker.fixKey(checked.id, checked.issues[0].id))
+        checker.choices[Checker.fixKey(checked.id, checked.issues[0].id)] = false
         #expect(checker.chosen(checked).issues.map(\.id) == checked.issues.dropFirst().map(\.id))
         #expect(Checker.hasWork(checker.chosen(checked)) == (checked.issues.count > 1))
     }

@@ -111,8 +111,49 @@ final class Checker {
     static let unknownApp = "Other screens"
 
     private(set) var screens = History.load()
-    var selection: Selection?
+    var selection: Selection? {
+        didSet {
+            guard !goingBack, let oldValue, oldValue != selection, visited.last != oldValue else { return }
+            visited = Array((visited + [oldValue]).suffix(50))
+        }
+    }
     var selectedIssue: Issue.ID?
+
+    /// Where the person has been, the latest last: the Back button goes there.
+    private(set) var visited: [Selection] = []
+    private var goingBack = false
+
+    /// Where Back leads: the last place visited that is still there.
+    var previous: Selection? {
+        visited.last { exists($0) }
+    }
+
+    func goBack() {
+        while let last = visited.popLast() {
+            guard exists(last) else { continue }
+            goingBack = true
+            selection = last
+            goingBack = false
+            return
+        }
+    }
+
+    private func exists(_ place: Selection) -> Bool {
+        switch place {
+        case .app(let app): apps.contains(app)
+        case .screen(let id): screens.contains { $0.id == id }
+        case .fix(let id): screens.contains { $0.id == id && $0.fix != nil }
+        }
+    }
+
+    /// A place in words, as the Back button and the path at the top of a page name it.
+    func name(of place: Selection) -> String {
+        switch place {
+        case .app(let app): app
+        case .screen(let id): screens.first { $0.id == id }?.title ?? "Screen"
+        case .fix(let id): "Fix of " + (screens.first { $0.id == id }?.title ?? "a screen")
+        }
+    }
 
     var selectedScreen: CheckedScreen.ID? {
         get { if case .screen(let id) = selection { id } else { nil } }
@@ -251,6 +292,11 @@ final class Checker {
     private(set) var live: CheckedScreen.ID?
     /// What the fix under way is doing, for the screen it is fixing.
     private(set) var fixing: (screen: CheckedScreen.ID, step: String)?
+    /// How far the fix under way has got: 1 writing it, 2 waiting for the app to reload,
+    /// 3 checking the screen again, 4 the people who were stuck trying again.
+    private(set) var fixStage = 0
+    /// What the fix under way was asked to fix, as the screens went to the fixer.
+    private(set) var fixRequest: [CheckedScreen] = []
     private(set) var fixProblem: String?
     /// The persona test under way: which screen, and what it is doing.
     private(set) var testing: (screen: CheckedScreen.ID, step: String)?
@@ -414,14 +460,25 @@ final class Checker {
                     try Task.checkCancellation()
                     if persona != .control, screens.first(where: { $0.id == id })?.run(.control, task)?.achieved != true { break }
                     testing = (id, "\(persona.title): \(task.goal)…")
-                    try await Restart.app()
-                    let way = try await Navigator.reach(checked.screen, picture: picture.jpeg, name: checked.title, route: &route, client: client)
                     var run: PersonaRun
                     do {
-                        run = try await Personas.run(persona, task: task, client: client) { [weak self] partial in
+                        run = try await Personas.attempt(persona, task: task, at: persona.textSize, start: checked.screen, picture: picture.jpeg, name: checked.title, route: &route, client: client) { [weak self] partial in
                             self?.keep(partial, in: id)
                         }
-                        run.usage += way
+                        if run.achieved == false, let size = run.textSize {
+                            keep(run, in: id)
+                            testing = (id, "\(persona.title): finding the text size where \(task.goal.lowercasedFirst) stops working…")
+                            // The search only adds to the failure: when it cannot finish, the failure stands without it.
+                            do {
+                                let (boundary, usage) = try await Personas.boundary(of: task, upTo: size) { size in
+                                    try await Personas.attempt(.control, task: task, at: size, start: checked.screen, picture: picture.jpeg, name: checked.title, route: &route, client: client)
+                                }
+                                run.boundary = boundary
+                                run.usage += usage
+                            } catch is CancellationError {
+                                throw CancellationError()
+                            } catch {}
+                        }
                     } catch is CancellationError {
                         throw CancellationError()
                     } catch {
@@ -468,9 +525,14 @@ final class Checker {
         UserDefaults.standard.set(projects, forKey: "projects")
     }
 
-    /// What is left out of the next fix, by `fixKey`: everything found is fixed unless the
-    /// person unticks it.
-    var excluded: Set<String> = []
+    /// What the person ticked or unticked for the next fix, by `fixKey`. Untouched, only the
+    /// tasks people got stuck at are ticked: a fix of everything found at once is too big to
+    /// review, and what stopped people matters most.
+    var choices: [String: Bool] = [:]
+
+    func isTicked(_ key: String, stuck: Bool) -> Bool {
+        choices[key] ?? stuck
+    }
 
     static func fixKey(_ screen: CheckedScreen.ID, _ thing: String) -> String { "\(screen)/\(thing)" }
 
@@ -489,8 +551,8 @@ final class Checker {
     /// A screen as it goes to the fixer: the problems and failed tasks still ticked.
     func chosen(_ checked: CheckedScreen) -> CheckedScreen {
         var chosen = withEarlierTest(checked)
-        chosen.issues = checked.issues.filter { !excluded.contains(Self.fixKey(checked.id, $0.id)) }
-        chosen.personaRuns = chosen.personaRuns?.filter { $0.achieved != false || $0.persona == .control || !excluded.contains(Self.fixKey(checked.id, $0.id.uuidString)) }
+        chosen.issues = checked.issues.filter { isTicked(Self.fixKey(checked.id, $0.id), stuck: false) }
+        chosen.personaRuns = chosen.personaRuns?.filter { $0.achieved != false || $0.persona == .control || isTicked(Self.fixKey(checked.id, $0.id.uuidString), stuck: true) }
         return chosen
     }
 
@@ -506,12 +568,11 @@ final class Checker {
     /// people always blocks them, so it counts as blocking too.
     func pick(_ pick: Pick, on screens: [CheckedScreen]) {
         for checked in screens {
-            excluded.subtract(excluded.filter { $0.hasPrefix("\(checked.id)/") })
             let all = Self.fixKeys(withEarlierTest(checked))
-            for (key, blocker) in all.issues where pick == .none || pick == .people || (pick == .blocking && !blocker) {
-                excluded.insert(key)
+            for (key, blocker) in all.issues {
+                choices[key] = pick == .all || (pick == .blocking && blocker)
             }
-            if pick == .none { excluded.formUnion(all.stuck) }
+            for key in all.stuck { choices[key] = pick != .none }
         }
     }
 
@@ -534,6 +595,19 @@ final class Checker {
         fix([chosen(checked)])
     }
 
+    /// Fixes one task someone could not do, and nothing else.
+    func fix(stuck run: PersonaRun, on checked: CheckedScreen) {
+        var only = withEarlierTest(checked)
+        only.issues = []
+        only.personaRuns = only.personaRuns?.filter { $0.id == run.id || $0.persona == .control }
+        fix([only])
+    }
+
+    /// The fix made for a task someone could not do, if there is one and it is not undone.
+    func fix(for run: PersonaRun, in app: String) -> CheckedScreen? {
+        fixes(of: app).first { $0.fix?.stuck?.contains(run.id) == true }
+    }
+
     /// Fixes what is ticked on every screen of an app, in one go.
     func fixSelected(in app: String) {
         fix(latestScreens(of: app).map(chosen).filter(Self.hasWork))
@@ -547,14 +621,23 @@ final class Checker {
         if project(for: app) == nil { chooseProject(for: app) }
         guard let project = project(for: app) else { return }
         fixProblem = nil
+        fixRequest = screens
+        fixing = (first.id, "Starting…")
+        fixStage = 1
+        // The fix's own page follows it from the start: its steps, then the result.
+        selection = .fix(first.id)
         Task { await fix(screens, in: project) }
     }
 
     private func fix(_ screens: [CheckedScreen], in project: Project) async {
         let lead = screens[0].id
-        defer { fixing = nil }
+        defer {
+            fixing = nil
+            fixStage = 0
+        }
         do {
-            fixing = (lead, "Reading \(project.name) and writing fixes for \(screens.count == 1 ? screens[0].title : "\(screens.count) screens")…")
+            let app = Self.app(of: screens[0])
+            fixing = (lead, "Muse Wonder is reading \(app)'s code and writing a fix for \(screens.count == 1 ? screens[0].title : "\(screens.count) screens")…")
             let shown = try? Simulator.screen()
             let run = try await Fixer.run(screens, project: project, client: ModelClient.fromEnvironment())
             for checked in screens {
@@ -562,13 +645,15 @@ final class Checker {
                 // Kept at once: the commit is made, whatever happens to the check after it.
                 if let fixed = self.screens.first(where: { $0.id == checked.id }) { History.save(fixed) }
             }
-            fixing = (lead, "Waiting for \(project.name) to reload…")
+            refreshBranch(of: app)
+            fixStage = 2
+            fixing = (lead, "Waiting for \(app) to reload in the Simulator…")
             if let shown { await waitForReload(from: shown) }
             let client = try ModelClient.fromEnvironment()
             for checked in screens {
-                try await afterFix(checked, run: run, in: project, client: client, lead: lead, fresh: screens.count > 1 || checked.id != live, select: screens.count == 1)
+                try await afterFix(checked, run: run, in: project, client: client, lead: lead, fresh: screens.count > 1 || checked.id != live, select: false)
             }
-            selection = screens.count == 1 ? .fix(lead) : .app(Self.app(of: screens[0]))
+            refreshBranch(of: Self.app(of: screens[0]))
         } catch {
             fixProblem = error.localizedDescription
         }
@@ -577,6 +662,7 @@ final class Checker {
     /// The check after a fix, for one screen: it is opened from a fresh start when it may not
     /// be shown, checked again, and the people who got stuck there try again.
     private func afterFix(_ checked: CheckedScreen, run: Fixer.Run, in project: Project, client: ModelClient, lead: CheckedScreen.ID, fresh: Bool, select: Bool) async throws {
+        fixStage = 3
         fixing = (lead, "Checking \(checked.title) again…")
         if fresh {
             var route = checked.route ?? []
@@ -610,6 +696,26 @@ final class Checker {
         }
     }
 
+    /// The people who were stuck try again after a fix, when that could not be done then.
+    func tryAgainAfterFix(of id: CheckedScreen.ID) {
+        guard let checked = screens.first(where: { $0.id == id }), let after = checked.fix?.after, fixing == nil, testing == nil,
+              let project = project(for: Self.app(of: checked)) else { return }
+        fixProblem = nil
+        fixing = (id, "Starting…")
+        fixStage = 4
+        Task {
+            defer {
+                fixing = nil
+                fixStage = 0
+            }
+            do {
+                try await proveFix(of: withEarlierTest(checked), after: after, in: project)
+            } catch {
+                fixProblem = error.localizedDescription
+            }
+        }
+    }
+
     /// Says a line as VoiceOver would, for hearing a screen before and after a fix.
     func say(_ text: String) {
         voice.stopSpeaking(at: .immediate)
@@ -626,6 +732,8 @@ final class Checker {
         let asked = Set(screens.first { $0.id == before.id }?.fix?.stuck ?? [])
         let stuck = (before.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control && asked.contains($0.id) }
         guard !stuck.isEmpty, let start = screens.first(where: { $0.id == id }) else { return }
+        // Whatever was tried is kept, also when a try cannot finish.
+        defer { if let done = screens.first(where: { $0.id == id }) { History.save(done) } }
         let client = try ModelClient.fromEnvironment()
         let picture = try await Picture.take(device: start.screen.device)
         var route = before.route ?? []
@@ -636,11 +744,11 @@ final class Checker {
         var tests: [String] = []
         let tries = Set(stuck.map(\.task)).flatMap { task in [(Persona.control, task)] + stuck.filter { $0.task == task }.map { ($0.persona, task) } }
         for (persona, task) in tries {
-            fixing = (before.id, "Checking the fix: \(persona.title), \(task.goal)…")
-            try await Restart.app()
-            let way = try await Navigator.reach(start.screen, picture: picture.jpeg, name: start.title, route: &route, client: client)
-            var run = try await Personas.run(persona, task: task, client: client) { [weak self] partial in self?.keep(partial, in: id) }
-            run.usage += way
+            fixStage = 4
+            fixing = (before.id, persona == .control ? "Someone without a disability tries \(task.goal.lowercasedFirst)…" : "\(persona.title) tries \(task.goal.lowercasedFirst) again…")
+            let run = try await Personas.attempt(persona, task: task, at: persona.textSize, start: start.screen, picture: picture.jpeg, name: start.title, route: &route, client: client) { [weak self] partial in
+                self?.keep(partial, in: id)
+            }
             keep(run, in: id)
             if persona != .control, let test = SavedTest(run, screen: start.title, route: route) {
                 tests.append(try test.save(in: project.folder).lastPathComponent)
@@ -672,8 +780,19 @@ final class Checker {
 
     /// The fix whose branch an app's source has checked out now, still to keep or undo.
     func openFix(of app: String) -> CheckedScreen? {
-        guard let project = project(for: app), let branch = try? project.branch, branch.hasPrefix("allyfix/") else { return nil }
+        guard let branch = branches[app], branch.hasPrefix("allyfix/") else { return nil }
         return fixes(of: app).first { $0.fix?.branch == branch && $0.fix?.kept != true }
+    }
+
+    /// The branch each app's source has checked out, as last looked up. Views read this and
+    /// never run git themselves: git waits for its process, and a view that waits while
+    /// SwiftUI draws loses the update it was part of.
+    private(set) var branches: [String: String] = [:]
+
+    /// Looks up the branch the app's source has checked out now.
+    func refreshBranch(of app: String?) {
+        guard let app else { return }
+        branches[app] = try? project(for: app)?.branch
     }
 
     /// Keeps a fix: brings it into the branch it started from, goes back there, and drops its
@@ -682,6 +801,7 @@ final class Checker {
         guard let checked = screens.first(where: { $0.id == id }), let run = checked.fix, let project = project(for: Self.app(of: checked)) else { return }
         do {
             try project.keep(branch: run.branch, base: run.base)
+            refreshBranch(of: Self.app(of: checked))
             for fixed in screens where fixed.fix?.branch == run.branch {
                 update(fixed.id) { $0.fix?.kept = true }
                 if let kept = screens.first(where: { $0.id == fixed.id }) { History.save(kept) }
@@ -697,6 +817,7 @@ final class Checker {
         guard let checked = screens.first(where: { $0.id == id }), let run = checked.fix, let project = project(for: Self.app(of: checked)) else { return }
         do {
             try project.undo(branch: run.branch, base: run.base)
+            refreshBranch(of: Self.app(of: checked))
             for fixed in screens where fixed.fix?.branch == run.branch {
                 if let after = fixed.fix?.after { remove { $0.id == after } }
                 update(fixed.id) { $0.fix = nil }

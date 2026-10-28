@@ -10,22 +10,28 @@ struct ContentView: View {
                     .navigationSplitViewColumnWidth(min: 200, ideal: 230)
             } detail: {
                 VStack(spacing: 0) {
-                if let app = checker.selectedApp, let open = checker.openFix(of: app), let run = open.fix {
-                    OpenFixBar(checker: checker, app: app, fixed: open, run: run)
-                }
+                BusyBar(checker: checker)
                 switch checker.selection {
                 case .app(let app)?:
                     AppOverview(checker: checker, app: app)
                 case .screen?:
                     if let checked = checker.selected { ScreenDetail(checker: checker, checked: checked) }
                 case .fix(let id)?:
-                    if let fixed = checker.screens.first(where: { $0.id == id && $0.fix != nil }) { FixPage(checker: checker, before: fixed) }
+                    if let fixed = checker.screens.first(where: { $0.id == id }) { FixPage(checker: checker, before: fixed) }
                 case nil:
                     start
                 }
                 }
+                .navigationTitle(checker.selection.map(checker.name) ?? "Allyfix")
+                .navigationSubtitle(subtitle)
             }
             .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Button(action: checker.goBack) { Label("Back", systemImage: "chevron.left") }
+                        .keyboardShortcut("[", modifiers: .command)
+                        .disabled(checker.previous == nil)
+                        .help(checker.previous.map { "Back to \(checker.name(of: $0)) (⌘[)" } ?? "Back")
+                }
                 ToolbarItemGroup(placement: .primaryAction) {
                     if let exploring = checker.exploring {
                         ProgressView().controlSize(.small)
@@ -33,6 +39,7 @@ struct ContentView: View {
                         Button("Stop", action: checker.stopExploring)
                     } else {
                         Button(action: checker.check) { Label("Check Screen", systemImage: "eye") }
+                            .labelStyle(.titleAndIcon)
                             .help("Check the screen the Simulator shows now (⌘R)")
                         Button(action: checker.exploreApp) { Label("Explore App", systemImage: "map") }
                             .labelStyle(.titleAndIcon)
@@ -67,6 +74,24 @@ struct ContentView: View {
         }
     }
 
+    /// Under the title: where it is, and how it stands, in a few words.
+    private var subtitle: String {
+        switch checker.selection {
+        case .app(let app)?:
+            let screens = checker.latestScreens(of: app).count, stuck = checker.blocked(in: app).count
+            return "\(screens) screen\(screens == 1 ? "" : "s") · " + (stuck == 0 ? "nobody got stuck so far" : "\(stuck) task\(stuck == 1 ? "" : "s") someone could not do")
+        case .screen?:
+            guard let checked = checker.selected else { return "" }
+            return "\(Checker.app(of: checked)) · \(checked.reviewing ? "checking…" : "\(checked.issues.count) problem\(checked.issues.count == 1 ? "" : "s")")"
+        case .fix(let id)?:
+            guard let fixed = checker.screens.first(where: { $0.id == id }) else { return "" }
+            if checker.fixing?.screen == id { return "\(Checker.app(of: fixed)) · in progress" }
+            return "\(Checker.app(of: fixed)) · " + (fixed.fix?.kept == true ? "kept" : fixed.fix == nil ? "not made" : "waiting for Keep or Undo")
+        case nil:
+            return ""
+        }
+    }
+
     private var permission: some View {
         VStack(spacing: 12) {
             Image(systemName: "hand.raised").font(.largeTitle).foregroundStyle(.secondary)
@@ -83,32 +108,6 @@ struct ContentView: View {
     }
 }
 
-/// While an app's source is on a fix's branch: say so, and offer to keep or undo it, so the
-/// repository is never left on it unnoticed.
-private struct OpenFixBar: View {
-    let checker: Checker
-    let app: String
-    let fixed: CheckedScreen
-    let run: Fixer.Run
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "arrow.triangle.branch").foregroundStyle(.orange)
-            Text("\(app)'s source is on **\(run.branch)**, with the fix of \(fixed.title). Keep it to bring it into \(run.base), or undo it.")
-                .lineLimit(2)
-            Spacer()
-            Button("Show Fix") { checker.selection = .fix(fixed.id) }
-            Button("Undo Fix") { checker.undoFix(of: fixed.id) }
-            Button("Keep Fix") { checker.keepFix(of: fixed.id) }
-                .buttonStyle(.borderedProminent)
-                .help("Merges the fix into \(run.base), switches back to \(run.base) and deletes \(run.branch)")
-        }
-        .font(.callout)
-        .padding(.horizontal, 14).padding(.vertical, 9)
-        .background(Color.orange.opacity(0.12))
-        .overlay(alignment: .bottom) { Divider() }
-    }
-}
 
 /// The apps tested, each opening into its screens.
 private struct AppList: View {
@@ -125,23 +124,21 @@ private struct AppList: View {
                                 .tag(Checker.Selection.screen(checked.id))
                                 .contextMenu { Button("Delete", role: .destructive) { checker.delete(checked.id) } }
                         }
-                        let fixes = checker.fixes(of: app)
-                        if !fixes.isEmpty {
-                            Text("Fixes").font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.top, 6)
-                            ForEach(fixes) { fixed in
-                                FixRow(fixed: fixed, verified: checker.verified(fixed)).tag(Checker.Selection.fix(fixed.id))
-                            }
-                        }
                     } label: {
                         AppRow(app: app, checker: checker).tag(Checker.Selection.app(app))
                     }
                 }
             }
         }
-        .onChange(of: checker.selection) { _, selection in
-            // Opening a screen opens its app in the list too.
-            if case .screen = selection, let app = checker.selectedApp { open.insert(app) }
+        // The app being looked at stays open in the list, from the start: opening it at the
+        // moment a screen is chosen from the overview changes the list mid-update, and SwiftUI
+        // then drops the change of page.
+        .onAppear { if let app = checker.selectedApp { open.insert(app) } }
+        .onChange(of: checker.selection) { _, _ in
+            if let app = checker.selectedApp { open.insert(app) }
         }
+        // Someone may switch branches in the source by hand; look again when the app changes.
+        .task(id: checker.selectedApp) { checker.refreshBranch(of: checker.selectedApp) }
         .safeAreaInset(edge: .bottom) {
             if let problem = checker.problem ?? checker.exploreProblem {
                 Label(problem, systemImage: "exclamationmark.triangle")
@@ -177,19 +174,6 @@ private struct AppRow: View {
     }
 }
 
-private struct FixRow: View {
-    let fixed: CheckedScreen
-    let verified: Bool?
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: verified == true ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
-                .foregroundStyle(verified == true ? .green : .orange)
-            Text("\(fixed.title): \(FixPage.headline(fixed.fix!))").lineLimit(1)
-        }
-        .help(verified == true ? "Fixed and verified" : verified == false ? "Fixed in part" : "Fixed, not verified yet")
-    }
-}
 
 private struct ScreenRow: View {
     let checked: CheckedScreen
@@ -207,5 +191,59 @@ private struct ScreenRow: View {
                 Text("\(checked.issues.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+/// Where a page sits, from the app down, at the top of the page: every step but the last
+/// opens that place.
+struct PathBar: View {
+    @Bindable var checker: Checker
+    let steps: [Checker.Selection]
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                if index > 0 { Image(systemName: "chevron.right").font(.caption2.weight(.semibold)).foregroundStyle(.tertiary) }
+                if index < steps.count - 1 {
+                    Button(checker.name(of: step)) { checker.selection = step }.buttonStyle(.link)
+                } else {
+                    Text(checker.name(of: step)).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .font(.callout)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Path")
+    }
+}
+
+/// What Allyfix is busy with, on every page while it lasts, and what can be done meanwhile:
+/// looking around, yes; anything else that needs the Simulator, once it is done.
+private struct BusyBar: View {
+    @Bindable var checker: Checker
+
+    var body: some View {
+        if let (id, step, stop) = busy, checker.selection != .fix(id), checker.selectedScreen != id {
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(step).lineLimit(2)
+                    Text("Look around meanwhile. Checks, tests and fixes wait until this is done, as it uses the Simulator; keep it in view.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button("Show") { checker.selection = checker.fixing != nil ? .fix(id) : .screen(id) }
+                if let stop { Button("Stop", action: stop) }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Color.accentColor.opacity(0.1))
+            Divider()
+        }
+    }
+
+    private var busy: (CheckedScreen.ID, String, (() -> Void)?)? {
+        if let fixing = checker.fixing { return (fixing.screen, fixing.step, nil) }
+        if let testing = checker.testing { return (testing.screen, testing.step, checker.stopTesting) }
+        return nil
     }
 }

@@ -57,7 +57,7 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
     var perceives: String {
         switch self {
         case .screenReader: "Hears VoiceOver, sees nothing"
-        case .lowVision: "Sees the screen blurred"
+        case .lowVision: "Text at 235%, still blurred"
         case .colorVision: "Can't tell red from green"
         case .deaf: "Knows a sound played, not what"
         case .dexterity: "Taps land a few points off"
@@ -83,10 +83,10 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
             """
         case .lowVision:
             """
-            You have low vision. Even with your glasses the screen looks as blurred as the \
-            screenshot you get. You can make out large shapes and big, high-contrast text; \
-            small or faint text and thin icons you cannot read. You never guess at what you \
-            cannot make out.
+            You have low vision. Your iPhone's text is set far larger than usual, and even \
+            with your glasses the screen looks as blurred as the screenshot you get. You can \
+            make out large shapes and big, high-contrast text; small or faint text and thin \
+            icons you cannot read. You never guess at what you cannot make out.
             """
         case .colorVision:
             """
@@ -120,6 +120,10 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
             """
         }
     }
+
+    /// The text size the persona has set on the phone: someone with low vision makes text
+    /// larger, past the 200% WCAG asks text to work at. The others keep the default.
+    var textSize: TextSize? { self == .lowVision ? .accessibilityExtraLarge : nil }
 
     /// Whether the persona gets a picture of the screen at all.
     var sees: Bool { self != .screenReader }
@@ -171,8 +175,8 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         default: seen = picture.jpeg
         }
         return Perceived(text: """
-            Numbered marks sit on things on the screen, whether they can be touched or not; touch \
-            one by its mark. To touch something without a mark, give x and y in the \(Int(picture.size.width))×\(Int(picture.size.height)) pixel screenshot.
+            Numbered marks sit on things on the screen, whether they can be touched or not, each at \
+            the top left of its thing; touch a thing by its mark. To touch something without a mark, give x and y in the \(Int(picture.size.width))×\(Int(picture.size.height)) pixel screenshot.
             """, jpeg: Self.marked(seen, screen: screen, picture: picture, extra: extra), spots: spots)
     }
 

@@ -66,7 +66,7 @@ enum Compliance {
                 for run in tested.personaRuns ?? [] where run.persona == persona && run.achieved != nil
                     && tested.run(.control, run.task)?.achieved == true && tested.run(persona, run.task)?.id == run.id {
                     tried += 1
-                    if run.achieved == false { stuck.append((checked.title, run.task.goal, run.why ?? "")) }
+                    if run.achieved == false { stuck.append((checked.title, run.task.goal, run.reason ?? "")) }
                 }
             }
             return (persona, tried, stuck)

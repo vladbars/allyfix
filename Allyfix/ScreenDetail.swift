@@ -6,8 +6,7 @@ struct ScreenDetail: View {
     @Bindable var checker: Checker
     let checked: CheckedScreen
     @State private var story: PersonaRun?
-    /// The branch the app's source has checked out, to tell whether a fix is in the app now.
-    @State private var currentBranch: String?
+    @State private var problemsOpen = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -20,59 +19,40 @@ struct ScreenDetail: View {
                     VStack(alignment: .leading, spacing: 22) {
                         header
                         FixPanel(checker: checker, checked: checked)
-                        if checked.fix == nil, checked.fixOf == nil, let fixed = checker.versions(of: checked).first(where: { $0.fix != nil }), let branch = fixed.fix?.branch {
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Image(systemName: "wand.and.stars").foregroundStyle(.tint)
-                                Text(branch == currentBranch
-                                     ? "Fixed on \(branch), which the app's source has checked out now."
-                                     : "Not fixed in the app now. An earlier fix is on \(branch), which is not checked out.")
-                                Button("Open") { checker.selectedScreen = fixed.id }.buttonStyle(.link)
-                            }
-                            .font(.callout)
-                        }
                         people
-                        issues
+                        DisclosureGroup(isExpanded: $problemsOpen) {
+                            issues.padding(.top, 8)
+                        } label: {
+                            Text(checked.reviewing ? "Problems found by automatic checks · checking…" : "Problems found by automatic checks · \(checked.issues.count)").font(.headline)
+                        }
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: checker.selectedIssue) { _, id in
+                    // A frame clicked on the screenshot opens the list at its problem.
+                    if id != nil { problemsOpen = true }
                     if let id { withAnimation { scroller.scrollTo(id, anchor: .center) } }
                 }
             }
         }
         .sheet(item: $story) { run in Story(run: run) }
-        .task(id: checked.id) { currentBranch = try? checker.project(for: checked.app)?.branch }
     }
 
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
+            PathBar(checker: checker, steps: [.app(Checker.app(of: checked)), .screen(checked.id)])
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(checked.title).font(.title2.weight(.semibold))
-                    Text([checked.app, checked.section].compactMap { $0 }.joined(separator: " · ")).font(.callout).foregroundStyle(.secondary)
+                    Text(checked.date.formatted(date: .abbreviated, time: .shortened)).font(.callout).foregroundStyle(.secondary)
                 }
                 Spacer()
                 let latest = checker.latest(of: checked)
                 if latest.id != checked.id {
                     Button("Open Latest Check") { checker.selectedScreen = latest.id }
                         .help("This is an earlier check; fixes are made from how the screen is now")
-                } else if checked.fix == nil, !checked.reviewing, !checked.issues.isEmpty || !stuck.isEmpty {
-                    let chosen = checker.chosen(checked)
-                    let count = chosen.issues.count + (chosen.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }.count
-                    Menu("Select") {
-                        ForEach(Checker.Pick.allCases, id: \.self) { pick in
-                            Button(pick.rawValue) { checker.pick(pick, on: [checked]) }
-                        }
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .help("Tick all, only what blocks, only what stopped people, or nothing")
-                    Button(action: checker.fix) { Label("Fix \(count) Selected", systemImage: "wand.and.stars") }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(count == 0 || checker.fixing != nil || checker.testing != nil)
-                        .help(checker.project(for: checked.app).map { "Changes the code in \($0.name) on a new branch, then the same people try again" } ?? "Choose the app's source folder, then change its code on a new branch")
                 }
             }
             HStack(spacing: 6) {
@@ -107,10 +87,6 @@ struct ScreenDetail: View {
         }
     }
 
-    private var stuck: [PersonaRun] {
-        (checked.personaRuns ?? []).filter { $0.persona != .control && $0.achieved == false && checked.run($0.persona, $0.task)?.id == $0.id }
-    }
-
     // MARK: People
 
     private var people: some View {
@@ -132,53 +108,21 @@ struct ScreenDetail: View {
             if let problem = checker.testProblem, checker.testing == nil, checker.selectedScreen == checked.id {
                 Text(problem).font(.callout).foregroundStyle(.orange)
             }
-            if let tasks = checked.tasks, !tasks.isEmpty {
-                PeopleTable(checked: checked, tasks: tasks) { story = $0 }
-                ForEach(stuck) { run in
-                    HStack(alignment: .top, spacing: 6) {
-                    Tick(checker: checker, key: Checker.fixKey(checked.id, run.id.uuidString))
-                    Button { story = run } label: {
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
-                            Text("**\(run.persona.title)** could not \(run.task.goal.lowercasedFirst): \(run.why ?? "")")
-                                .multilineTextAlignment(.leading)
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
-                        }
-                        .font(.callout)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    }
+            if let tested = checked.tasks != nil ? checked : checker.lastTest(of: checked), let tasks = tested.tasks, !tasks.isEmpty {
+                if tested.id != checked.id {
+                    Text("From the test on \(tested.date.formatted(date: .abbreviated, time: .shortened)).").font(.callout).foregroundStyle(.secondary)
+                }
+                ForEach(tasks, id: \.self) { task in
+                    TaskResult(checker: checker, checked: checked, tested: tested, task: task) { story = $0 }
+                }
+                let untried = Persona.people.filter { person in person.ready && !tasks.contains { tested.run(person, $0) != nil } }
+                if !untried.isEmpty {
+                    Text("Not tried yet: " + untried.map(\.title).joined(separator: ", ") + ". Test Again has everyone try.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
             } else if checker.testing?.screen != checked.id {
-                Text("Not tested on this check. Each person tries what this screen is for, with only what they can perceive.")
+                Text("Nobody has tried this screen yet. Test People: each person tries what this screen is for, with only what they can perceive.")
                     .font(.callout).foregroundStyle(.secondary)
-                if let earlier {
-                    HStack(spacing: 6) {
-                        Text("Last tested on \(earlier.date.formatted(date: .abbreviated, time: .shortened))\(earlier.fixOf != nil ? ", after a fix" : earlier.fix != nil ? ", before a fix" : "").")
-                        Button("Open") { checker.selectedScreen = earlier.id }.buttonStyle(.link)
-                    }
-                    .font(.callout).foregroundStyle(.secondary)
-                }
-                // What the fix will take from the last test before any fix: the code is the
-                // same until a fix changes it.
-                if let tested = checker.lastTest(of: checked) {
-                    let failed = (tested.personaRuns ?? []).filter { $0.persona != .control && $0.achieved == false && tested.run($0.persona, $0.task)?.id == $0.id }
-                    if !failed.isEmpty {
-                        Text("Still to fix, from the test on \(tested.date.formatted(date: .abbreviated, time: .shortened)):").font(.callout.weight(.medium))
-                        ForEach(failed) { run in
-                            HStack(alignment: .top, spacing: 6) {
-                                Tick(checker: checker, key: Checker.fixKey(checked.id, run.id.uuidString))
-                                Button { story = run } label: {
-                                    Text("**\(run.persona.title)** could not \(run.task.goal.lowercasedFirst): \(run.why ?? "")").multilineTextAlignment(.leading)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .font(.callout)
-                        }
-                    }
-                }
             }
         }
     }
@@ -187,7 +131,22 @@ struct ScreenDetail: View {
 
     private var issues: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Problems").font(.title3.weight(.semibold))
+            if checker.latest(of: checked).id == checked.id, checked.fix == nil, !checked.issues.isEmpty {
+                let count = checker.chosen(checked).issues.count
+                HStack {
+                    Text("Tick what to fix; a small fix is easier to check.").font(.callout).foregroundStyle(.secondary)
+                    Spacer()
+                    Menu("Select") {
+                        ForEach(Checker.Pick.allCases, id: \.self) { pick in
+                            Button(pick.rawValue) { checker.pick(pick, on: [checked]) }
+                        }
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    Button(action: checker.fix) { Label("Fix \(count) Ticked", systemImage: "wand.and.stars") }
+                        .disabled(count == 0 || checker.fixing != nil || checker.testing != nil)
+                }
+            }
             if checked.reviewing {
                 ProgressView()
             } else if checked.issues.isEmpty {
@@ -383,11 +342,13 @@ private struct Change: View {
 private struct Tick: View {
     @Bindable var checker: Checker
     let key: String
+    /// Whether it is a task someone got stuck at, ticked unless unticked.
+    var stuck = false
 
     var body: some View {
         Toggle("", isOn: Binding(
-            get: { !checker.excluded.contains(key) },
-            set: { if $0 { checker.excluded.remove(key) } else { checker.excluded.insert(key) } }
+            get: { checker.isTicked(key, stuck: stuck) },
+            set: { checker.choices[key] = $0 }
         ))
         .toggleStyle(.checkbox)
         .labelsHidden()
@@ -395,90 +356,9 @@ private struct Tick: View {
     }
 }
 
-/// Tasks down, people across: who managed each task, who got stuck, who was not tried.
-private struct PeopleTable: View {
-    let checked: CheckedScreen
-    let tasks: [ScreenTask]
-    let open: (PersonaRun) -> Void
-
-    private var columns: [Persona] { [.control] + Persona.people.filter(\.ready) }
-
-    var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 6, verticalSpacing: 8) {
-            GridRow {
-                Text("")
-                ForEach(columns) { persona in
-                    Image(systemName: persona.symbol)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(persona == .control ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-                        .frame(width: 34)
-                        .help(persona == .control ? "Without a disability: a task this fails is not a test of access" : "\(persona.title): \(persona.perceives)")
-                }
-            }
-            ForEach(tasks, id: \.self) { task in
-                GridRow {
-                    Text(task.goal).font(.callout).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                    ForEach(columns) { persona in
-                        Cell(run: checked.run(persona, task), skipped: persona != .control && checked.run(.control, task)?.achieved == false, open: open)
-                            .frame(width: 34)
-                    }
-                }
-            }
-        }
-        .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).fill(.background.secondary))
-        legend
-    }
-
-    /// What the symbols mean, once, under the table.
-    private var legend: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), alignment: .leading)], alignment: .leading, spacing: 4) {
-            ForEach(columns) { persona in
-                Label(persona == .control ? "Without a disability" : persona.title, systemImage: persona.symbol)
-            }
-            Label("did it", systemImage: "checkmark.circle.fill")
-            Label("got stuck", systemImage: "xmark.octagon.fill")
-            Label("not tried: failed without a disability too", systemImage: "minus")
-            Label("not tried yet", systemImage: "circle.dashed")
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-
-    private struct Cell: View {
-        let run: PersonaRun?
-        let skipped: Bool
-        let open: (PersonaRun) -> Void
-
-        var body: some View {
-            Button { if let run { open(run) } } label: {
-                Group {
-                    if skipped {
-                        Image(systemName: "minus").foregroundStyle(.tertiary)
-                    } else if let run {
-                        switch run.achieved {
-                        case true?: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        case false?: Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
-                        case nil where run.problem != nil: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                        case nil: ProgressView().controlSize(.mini)
-                        }
-                    } else {
-                        Image(systemName: "circle.dashed").foregroundStyle(.quaternary)
-                    }
-                }
-                .font(.system(size: 15))
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
-            .disabled(run == nil)
-            .help(skipped ? "Not tried: it failed without a disability too" : run?.why ?? run?.problem ?? "")
-        }
-    }
-}
-
 /// How one person went about one task, step by step: what they perceived, what they did,
 /// and where it ended.
-private struct Story: View {
+struct Story: View {
     let run: PersonaRun
     @Environment(\.dismiss) private var dismiss
 
@@ -491,7 +371,8 @@ private struct Story: View {
                     Text(run.persona.perceives).foregroundStyle(.secondary)
                     Label(run.achieved == true ? "Done" : "Stuck", systemImage: run.achieved == true ? "checkmark.circle.fill" : "xmark.octagon.fill")
                         .foregroundStyle(run.achieved == true ? .green : .red)
-                    if let why = run.why ?? run.problem { Text(why).font(.callout) }
+                    if let why = run.reason { Text(why).font(.callout) }
+                    if let boundary = run.boundary { SizeScale(boundary: boundary) }
                 }
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
@@ -647,7 +528,7 @@ private struct FixPanel: View {
             .font(.callout)
         } else if let problem = checker.fixProblem, checked.id == checker.selectedScreen, fixed == nil {
             Label(problem, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(.orange)
-        } else if let fixed, let run = fixed.fix {
+        } else if let fixed, fixed.fix != nil {
             let verified = checker.verified(fixed)
             Button { checker.selection = .fix(fixed.id) } label: {
                 HStack(spacing: 10) {
@@ -656,7 +537,7 @@ private struct FixPanel: View {
                         .foregroundStyle(verified == true ? .green : .orange)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(verified == true ? "Fixed and verified" : verified == false ? "Fixed in part" : "Fixed, not verified yet").font(.headline)
-                        Text(FixPage.headline(run)).font(.callout).foregroundStyle(.secondary).lineLimit(2)
+                        Text(checker.fixTitle(of: fixed)).font(.callout).foregroundStyle(.secondary).lineLimit(2)
                     }
                     Spacer()
                     Text("Open Fix").foregroundStyle(.tint)
@@ -705,5 +586,89 @@ private struct IssueRow: View {
         .padding(8)
         .background(RoundedRectangle(cornerRadius: 8).fill(selected ? Color.accentColor.opacity(0.12) : .clear))
         .contentShape(Rectangle())
+    }
+}
+
+/// Where a task stopped working as text grew: each size iOS offers, up to the one a person
+/// with low vision uses, green while it worked and red from where it broke.
+struct SizeScale: View {
+    let boundary: PersonaRun.Boundary
+
+    private var sizes: [TextSize] {
+        TextSize.allCases.filter { $0 <= max(Persona.lowVision.textSize ?? .large, boundary.breaks ?? boundary.holds) }
+    }
+
+    var body: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 5) {
+            ForEach(sizes, id: \.self) { size in
+                Text("A")
+                    .font(.system(size: 8 + CGFloat(size.percent) / 25, weight: .semibold))
+                    .foregroundStyle(boundary.breaks.map { size >= $0 } == true ? .red : .green)
+                    .help(size.title)
+            }
+            Text(boundary.breaks.map { "works up to \(boundary.holds.percent)%, breaks at \($0.percent)%" } ?? "layout holds at \(boundary.holds.percent)%")
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.leading, 4)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(boundary.breaks.map { "Works up to \(boundary.holds.title), breaks at \($0.title)" } ?? "Layout holds at \(boundary.holds.title)")
+    }
+}
+
+/// One task and how the people fared at it: who got stuck, with Fix, and who got through.
+private struct TaskResult: View {
+    @Bindable var checker: Checker
+    let checked: CheckedScreen
+    let tested: CheckedScreen
+    let task: ScreenTask
+    let open: (PersonaRun) -> Void
+
+    var body: some View {
+        let runs = Persona.people.compactMap { tested.run($0, task) }.filter { $0.achieved != nil }
+        let control = tested.run(.control, task)
+        let stuck = runs.filter { $0.achieved == false }
+        let through = runs.filter { $0.achieved == true }
+        VStack(alignment: .leading, spacing: 8) {
+            Text(task.goal).font(.body.weight(.semibold))
+            if control?.achieved == false {
+                Label("Not a test of access: it did not work without a disability either.", systemImage: "minus.circle").foregroundStyle(.secondary)
+            } else if control == nil || (runs.isEmpty && checker.testing?.screen == checked.id) {
+                Label("Being tried…", systemImage: "hourglass").foregroundStyle(.secondary)
+            }
+            ForEach(stuck) { run in
+                VStack(alignment: .leading, spacing: 6) {
+                    Label {
+                        Text("**\(run.persona.title)** got stuck. \(run.why ?? "")").lineLimit(3)
+                    } icon: {
+                        Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+                    }
+                    if let boundary = run.boundary { SizeScale(boundary: boundary).padding(.leading, 28) }
+                    HStack(spacing: 14) {
+                        if let fixed = checker.fix(for: run, in: Checker.app(of: checked)) {
+                            Button { checker.selection = .fix(fixed.id) } label: { Label("Open Fix", systemImage: "wand.and.stars") }
+                        } else if checker.latest(of: checked).id == checked.id {
+                            Button { checker.fix(stuck: run, on: checked) } label: { Label("Fix", systemImage: "wand.and.stars") }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(checker.fixing != nil || checker.testing != nil || checker.exploring != nil)
+                        }
+                        Button("See What Happened") { open(run) }
+                    }
+                    .padding(.leading, 28)
+                }
+            }
+            if !through.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text(stuck.isEmpty ? "Everyone who tried got through:" : "Got through:")
+                    ForEach(through) { run in
+                        Button(run.persona.title) { open(run) }.buttonStyle(.link)
+                    }
+                }
+            }
+        }
+        .font(.callout)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10).fill(.background.secondary))
     }
 }

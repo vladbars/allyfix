@@ -54,6 +54,13 @@ enum Fixer {
         for (number, checked) in screens.enumerated() {
             input.append(.text("Screen \(number + 1): \(checked.title)"))
             if let jpeg = checked.jpeg { input.append(.jpeg(jpeg)) }
+            // A seeing person who got stuck: the screen as they saw it, at their text size.
+            for run in (checked.personaRuns ?? []) where run.achieved == false && run.persona.sees && run.persona != .control {
+                if let seen = run.steps.last?.jpeg {
+                    input.append(.text("Screen \(number + 1) as \(run.persona.title) saw it (\(run.persona.perceives.lowercased())):"))
+                    input.append(.jpeg(seen))
+                }
+            }
         }
         input.append(.text(describe(screens)))
         input.append(.text(sources.map { "=== \($0.path)\n\($0.text)" }.joined(separator: "\n\n")))
@@ -83,7 +90,7 @@ enum Fixer {
         let numbered = screens.flatMap { checked in checked.issues.map { Checker.fixKey(checked.id, $0.id) } }
         let fixed = Set(applied.flatMap(\.issues)).compactMap { $0 >= 1 && $0 <= numbered.count ? numbered[$0 - 1] : nil }
         let titles = screens.map(\.title).joined(separator: ", ")
-        try project.commit("Make \(titles) work with VoiceOver\n\n\(answer.summary)\n\n" + applied.map { "- \($0.why)" }.joined(separator: "\n"))
+        try project.commit("Make \(titles) accessible\n\n\(answer.summary)\n\n" + applied.map { "- \($0.why)" }.joined(separator: "\n"))
         var run = Run(branch: branch, base: base, summary: answer.summary, applied: applied, failed: failed, usage: usage, time: Date().timeIntervalSince(start))
         run.fixed = fixed
         run.stuck = screens.flatMap { ($0.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }.map(\.id) }
@@ -91,15 +98,21 @@ enum Fixer {
     }
 
     static let instructions = """
-    You fix problems that keep VoiceOver users from using an iOS app, in the app's source \
-    code. You get the problems found on one screen, with what VoiceOver reads there, a \
-    screenshot of the screen, and the app's source files.
+    You fix problems that keep people with disabilities from using an iOS app, in the app's \
+    source code. You get the problems found on each screen, with what VoiceOver reads there, \
+    a screenshot of the screen, how the people who got stuck saw it, and the app's source \
+    files.
 
     Most important are the tasks people with disabilities tried and could not do: fix what \
     stopped them, so the same person can do the same task. Make the smallest changes that \
     do it, in the code that draws this screen. Keep the look for everyone else, unless the \
     problem is itself visual (a target too small to hit, a state told only by color, text \
     that does not fit at large sizes); then change as little as needed.
+    - Low vision: the person has text set to 235% in iOS and still sees blurred. What they \
+    need must stay big and clear: controls and icons large enough to make out, a state shown \
+    by more than a thin outline or a fill (a filled icon with a word, say), nothing overlapping \
+    or cut off at large text sizes. Never turn off text scaling to make a layout fit; let it \
+    wrap or stack instead.
     - React Native: accessibilityLabel, accessibilityRole, accessibilityState; \
     accessible={false} on a container that should not swallow the controls inside it; \
     accessibilityElementsHidden and importantForAccessibility="no-hide-descendants" for \
@@ -119,7 +132,7 @@ enum Fixer {
     file, long enough to occur in it once; replace is what that text becomes. Edits in one \
     file must not overlap. issues are the numbers of the problems the edit fixes; why is \
     one short line. Leave out a problem you cannot fix safely. summary: two or three \
-    sentences for the pull request, saying what changed for VoiceOver users.
+    sentences for the pull request, saying what changed for the people who were stuck.
     """
 
     /// For each screen: the tasks people could not do and how they got stuck, then the
@@ -136,7 +149,7 @@ enum Fixer {
             if !stuck.isEmpty {
                 lines.append("Tasks people could not do:")
                 for run in stuck {
-                    lines.append("- \(run.persona.title) (\(run.persona.perceives.lowercased())) tried \"\(run.task.goal)\" and got stuck: \(run.why ?? "")")
+                    lines.append("- \(run.persona.title) (\(run.persona.perceives.lowercased())) tried \"\(run.task.goal)\" and got stuck: \(run.reason ?? "")")
                     for step in run.steps {
                         lines.append("    \(step.action)\(step.target.map { " \($0.withIconsNamed)" } ?? ""): \(step.thought)")
                     }

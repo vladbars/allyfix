@@ -45,6 +45,35 @@ struct PersonaRun: Codable, Identifiable {
     /// How the accessibility tree tells the task is done, taken when the judge first saw it
     /// done; a saved test checks this, with no model.
     var expect: [Expectation]?
+    /// The text size the run was made at, when not the default.
+    var textSize: TextSize?
+    /// For a run at a larger text size that failed: up to which size someone who sees well
+    /// can still do the task, and from which size they cannot.
+    var boundary: Boundary?
+
+    struct Boundary: Codable {
+        /// The largest size at which the task still worked.
+        var holds: TextSize
+        /// The first size at which it no longer did; nil when it worked at every size tried.
+        var breaks: TextSize?
+        /// What stopped them at that size, in the judge's words.
+        var why: String?
+    }
+
+    /// Where it broke as text grew, in a sentence; nil when no size was searched.
+    var sizeNote: String? {
+        guard let boundary else { return nil }
+        guard let breaks = boundary.breaks else {
+            return "It is not the text size: someone who sees well does it at \(boundary.holds.title). What stops them is something too small or faint to make out."
+        }
+        return "The screen works at \(boundary.holds.title) and breaks at \(breaks.title), even for someone who sees well" + (boundary.why.map { ": \($0)" } ?? ".")
+    }
+
+    /// Why the run went as it did, with where it broke as text grew.
+    var reason: String? {
+        let parts = [why ?? problem, sizeNote].compactMap(\.self)
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
     var usage = ModelClient.Usage()
 }
 
@@ -219,6 +248,38 @@ enum Personas {
         return runs
     }
 
+    /// A persona tries a task from a fresh start of the app, at the persona's text size: the
+    /// app is opened again, the screen under test reached, and the task tried.
+    static func attempt(_ persona: Persona, task: ScreenTask, at size: TextSize?, start: Screen, picture: Data, name: String, route: inout [String], client: ModelClient, progress: (PersonaRun) -> Void = { _ in }) async throws -> PersonaRun {
+        try await TextSize.with(size) {
+            try await Restart.app()
+            let way = try await Navigator.reach(start, picture: picture, name: name, route: &route, client: client)
+            var run = try await run(persona, task: task, client: client, progress: progress)
+            run.usage += way
+            run.textSize = size
+            return run
+        }
+    }
+
+    /// Where a task stops working as text grows, between the default, where it worked, and
+    /// `top`: someone who sees well tries it at the sizes between, halving the gap each time.
+    /// Telling the layout breaking apart from the blur, and saying at which size.
+    static func boundary(of task: ScreenTask, upTo top: TextSize, attempt: (TextSize) async throws -> PersonaRun) async throws -> (PersonaRun.Boundary, ModelClient.Usage) {
+        var usage = ModelClient.Usage()
+        let sizes = TextSize.allCases.filter { $0 <= top }
+        let atTop = try await attempt(top)
+        usage += atTop.usage
+        if atTop.achieved == true { return (.init(holds: top), usage) }
+        var works = 0, fails = sizes.count - 1, why = atTop.why
+        while fails - works > 1 {
+            let middle = (works + fails) / 2
+            let run = try await attempt(sizes[middle])
+            usage += run.usage
+            if run.achieved == true { works = middle } else { fails = middle; why = run.why }
+        }
+        return (.init(holds: sizes[works], breaks: sizes[fails], why: why), usage)
+    }
+
     static let mostSteps = 6
     /// Time for the app to answer a press and finish animating.
     static let settle = Duration.milliseconds(1200)
@@ -347,7 +408,7 @@ enum Personas {
 
     static func instructions(for persona: Persona) -> String {
         let acting = persona.sees
-            ? "Each step, do one thing: touch something you see (by its mark in element, or by x and y), say done when you believe the task is complete, or giveUp when you cannot see how to do it."
+            ? "Each step, do one thing: touch something you see, say done when you believe the task is complete, or giveUp when you cannot see how to do it. To touch something, give in element the number of the mark that sits on it or just above it, even if you cannot make out what it says; give x and y only when no mark is on or next to it."
             : "Each step, do one thing: activate an element by its number (you swipe to it and double-tap), say done when you believe the task is complete, or giveUp when what you hear does not let you do it."
         return """
         \(persona.role)

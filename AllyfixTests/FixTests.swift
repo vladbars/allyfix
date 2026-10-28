@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import ImageIO
 import Testing
@@ -107,5 +108,36 @@ struct InkTests {
         let found = try #require(Ink.below(CGRect(x: 30, y: 5, width: 40, height: 6), on: screen, picture: data as Data))
         #expect(abs(found.minX - 40) <= 2 && abs(found.minY - 20) <= 2 && abs(found.width - 20) <= 3 && abs(found.height - 20) <= 3)
         #expect(Ink.below(CGRect(x: 0, y: 120, width: 30, height: 6), on: screen, picture: data as Data) == nil)
+    }
+}
+
+@MainActor
+struct DifferenceTests {
+    /// A grey phone-shaped picture with a dark box at a place given in unit coordinates.
+    func picture(box: CGRect?, clock: Bool = false) -> Data {
+        let size = NSSize(width: 300, height: 650)
+        let image = NSImage(size: size, flipped: true) { rect in
+            NSColor(white: 0.9, alpha: 1).setFill()
+            rect.fill()
+            NSColor.black.setFill()
+            if let box { CGRect(x: box.minX * 300, y: box.minY * 650, width: box.width * 300, height: box.height * 650).fill() }
+            if clock { CGRect(x: 20, y: 8, width: 40, height: 16).fill() }
+            return true
+        }
+        let rep = NSBitmapImageRep(data: image.tiffRepresentation!)!
+        return rep.representation(using: .jpeg, properties: [.compressionFactor: 0.8])!
+    }
+
+    @Test func findsWhereTheScreenChangedAndNotTheClock() {
+        let place = CGRect(x: 0.6, y: 0.3, width: 0.25, height: 0.08)
+        let regions = Difference.regions(picture(box: nil), picture(box: place, clock: true))
+        #expect(regions.count == 1)
+        let found = regions[0]
+        #expect(abs(found.midX - place.midX) < 0.05 && abs(found.midY - place.midY) < 0.05)
+        #expect(Difference.closeUp(picture(box: place), around: found) != nil)
+    }
+
+    @Test func theSamePictureHasNoChange() {
+        #expect(Difference.regions(picture(box: nil), picture(box: nil)).isEmpty)
     }
 }

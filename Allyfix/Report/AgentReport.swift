@@ -72,7 +72,7 @@ enum AgentReport {
             }.map { run in
                 Findings.Stuck(
                     persona: run.persona.title, clause: "EN 301 549 \(run.persona.clause)", task: run.task.goal,
-                    why: run.why ?? "", tested: tested?.date ?? checked.date,
+                    why: run.reason ?? "", tested: tested?.date ?? checked.date,
                     steps: run.steps.map { "\($0.action)\($0.target.map { " \($0.withIconsNamed)" } ?? ""): \($0.thought)" }
                 )
             }

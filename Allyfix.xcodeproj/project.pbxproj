@@ -26,7 +26,9 @@
 		9842DC95D8CFF8F12F9BCFE9 /* AppOverview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0225B8DF97C00CD0325D9ADE /* AppOverview.swift */; };
 		9E4C88FC6CCC95B32CC288D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 25A777B161C0CFAE9965FB51 /* Assets.xcassets */; };
 		A18A294FFDDA4F446DF8106E /* Review.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEB6E949478E43CF740CDAAA /* Review.swift */; };
+		A8CA0F29F40651BCF310F79A /* TextSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0222989B368069646817BCCF /* TextSize.swift */; };
 		BB61B19A9099CDD147E09AC4 /* SavedTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 317C749F4EA99FB852D79661 /* SavedTest.swift */; };
+		C2F40C9D73A27A768140D4FB /* Difference.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFBB70609CC3F909DED77CD5 /* Difference.swift */; };
 		C7B3168DFE1C4A989F105A3A /* Ink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8D1F20F189BAFC37546C2C /* Ink.swift */; };
 		C93A9E4F5744BF2B254CB465 /* PersonaRun.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADBD17C3D53C7119A90B25C /* PersonaRun.swift */; };
 		CA93A4EAF9EFD01835ED684E /* Compliance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 871CBBD346C6951156A7C89F /* Compliance.swift */; };
@@ -51,6 +53,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0222989B368069646817BCCF /* TextSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextSize.swift; sourceTree = "<group>"; };
 		0225B8DF97C00CD0325D9ADE /* AppOverview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOverview.swift; sourceTree = "<group>"; };
 		034BB3103B9B24FAA0CCD559 /* Picture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Picture.swift; sourceTree = "<group>"; };
 		1D8D1F20F189BAFC37546C2C /* Ink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ink.swift; sourceTree = "<group>"; };
@@ -76,6 +79,7 @@
 		C80AD0FF8934DE370772BDA2 /* ScreenDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenDetail.swift; sourceTree = "<group>"; };
 		CD063188E9AA003BBF7E0811 /* Persona.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persona.swift; sourceTree = "<group>"; };
 		CF2FE71DF384AC9EBF71A1C0 /* Navigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigator.swift; sourceTree = "<group>"; };
+		CFBB70609CC3F909DED77CD5 /* Difference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Difference.swift; sourceTree = "<group>"; };
 		DA68A74EA36CC0171B2CFA92 /* Allyfix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Allyfix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DADBD17C3D53C7119A90B25C /* PersonaRun.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaRun.swift; sourceTree = "<group>"; };
 		DC9243998ABDDA120BAB06F9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -138,6 +142,7 @@
 		5B868134D93680AD8C733CBF /* Fix */ = {
 			isa = PBXGroup;
 			children = (
+				CFBB70609CC3F909DED77CD5 /* Difference.swift */,
 				26F9FCF9DAA8F82063941FDF /* Fixer.swift */,
 				F201B7ED5F9B0E39706464CA /* Project.swift */,
 			);
@@ -206,6 +211,7 @@
 				CD063188E9AA003BBF7E0811 /* Persona.swift */,
 				DADBD17C3D53C7119A90B25C /* PersonaRun.swift */,
 				317C749F4EA99FB852D79661 /* SavedTest.swift */,
+				0222989B368069646817BCCF /* TextSize.swift */,
 			);
 			path = Personas;
 			sourceTree = "<group>";
@@ -311,6 +317,7 @@
 				016A3D9148E2190035B93D22 /* Checker.swift in Sources */,
 				CA93A4EAF9EFD01835ED684E /* Compliance.swift in Sources */,
 				F498D20877D821C28D8AACB9 /* ContentView.swift in Sources */,
+				C2F40C9D73A27A768140D4FB /* Difference.swift in Sources */,
 				EF795399470F601E6B42A52A /* Element.swift in Sources */,
 				7122210A04BB86367709E602 /* Explorer.swift in Sources */,
 				258FC30A13173584FD2432E9 /* FixPage.swift in Sources */,
@@ -330,6 +337,7 @@
 				BB61B19A9099CDD147E09AC4 /* SavedTest.swift in Sources */,
 				FD4E46D01A25BD9303D5E83C /* ScreenDetail.swift in Sources */,
 				68D9B222953D1FEFC43AF5B1 /* Simulator.swift in Sources */,
+				A8CA0F29F40651BCF310F79A /* TextSize.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

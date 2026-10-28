@@ -16,7 +16,8 @@ extension Checker {
 
     /// How much is ticked to fix across an app.
     func ticked(in app: String) -> Int {
-        latestScreens(of: app).map(chosen).map { $0.issues.count + ($0.personaRuns ?? []).filter { $0.achieved == false && $0.persona != .control }.count }.reduce(0, +)
+        let issues = latestScreens(of: app).map { chosen($0).issues.count }.reduce(0, +)
+        return issues + blocked(in: app).filter { isTicked(Checker.fixKey($0.screen.id, $0.run.id.uuidString), stuck: true) }.count
     }
 }
 
@@ -25,6 +26,7 @@ extension Checker {
 struct AppOverview: View {
     @Bindable var checker: Checker
     let app: String
+    @State private var story: PersonaRun?
 
     private var screens: [CheckedScreen] { checker.latestScreens(of: app) }
 
@@ -32,15 +34,22 @@ struct AppOverview: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 header
+                fixCard
                 people
-                toFix
                 gallery
-                source
+                reports
+                Folded(title: "Details: \(screens.map(\.issues.count).reduce(0, +)) problems found by automatic checks, code and saved tests") {
+                    VStack(alignment: .leading, spacing: 28) {
+                        toFix
+                        source
+                    }
+                }
             }
             .padding(24)
             .frame(maxWidth: 900, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        .sheet(item: $story) { run in Story(run: run) }
     }
 
     private var header: some View {
@@ -66,23 +75,58 @@ struct AppOverview: View {
         }
     }
 
+    // MARK: A fix under way, or waiting for a decision
+
+    @ViewBuilder private var fixCard: some View {
+        if let fixing = checker.fixing, let fixed = checker.screens.first(where: { $0.id == fixing.screen }), Checker.app(of: fixed) == app {
+            card(symbol: nil, color: .accentColor, title: "Fixing: " + checker.fixTitle(of: fixed).lowercasedFirst, detail: fixing.step) {
+                Button("Show") { checker.selection = .fix(fixed.id) }
+            }
+        } else if let open = checker.openFix(of: app) {
+            card(symbol: "arrow.triangle.branch", color: .orange, title: checker.fixTitle(of: open), detail: "This fix is in the app now, on its own branch. Keep it, or undo it.") {
+                Button("Open Fix") { checker.selection = .fix(open.id) }.buttonStyle(.borderedProminent)
+            }
+        }
+    }
+
+    private func card(symbol: String?, color: Color, title: String, detail: String, @ViewBuilder actions: () -> some View) -> some View {
+        HStack(spacing: 12) {
+            if let symbol { Image(systemName: symbol).font(.title2).foregroundStyle(color) } else { ProgressView().controlSize(.small) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text(detail).font(.callout).foregroundStyle(.secondary)
+            }
+            Spacer()
+            actions()
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 12).fill(color.opacity(0.1)))
+    }
+
     // MARK: Who cannot use it
 
     private var people: some View {
-        Section {
+        let blocked = checker.blocked(in: app)
+        let tested = screens.filter { checker.lastTest(of: $0) != nil }
+        return Section {
             VStack(spacing: 0) {
                 ForEach(Persona.people) { persona in
-                    PersonRow(persona: persona, outcome: outcome(for: persona)) {
-                        if let first = checker.blocked(in: app).first(where: { $0.run.persona == persona }) {
-                            checker.selectedScreen = first.screen.id
-                        }
+                    PersonRow(persona: persona, outcome: outcome(for: persona))
+                    // Where they got stuck, right here: the screen, the task, why, and the way there.
+                    ForEach(blocked.filter { $0.run.persona == persona }, id: \.run.id) { item in
+                        StuckRow(checker: checker, app: app, screen: item.screen, run: item.run, open: { story = item.run })
                     }
                     if persona != Persona.people.last { Divider() }
                 }
             }
             .background(RoundedRectangle(cornerRadius: 10).fill(.background.secondary))
+            Text(tested.isEmpty
+                 ? "Nobody has tried this app yet. Open a screen and press Test People: each person tries what the screen is for."
+                 : "Tried on \(tested.map(\.title).sorted().joined(separator: ", ")) (\(tested.count) of \(screens.count) screens). To try more, open a screen and press Test People.")
+                .font(.callout).foregroundStyle(.secondary)
+                .padding(.top, 6)
         } header: {
-            SectionTitle("Who can't use it", detail: "Tasks each person tried on the screens tested so far")
+            SectionTitle("Who can't use it", detail: "Each person tries what a screen is for, with only what they can perceive")
         }
     }
 
@@ -104,18 +148,42 @@ struct AppOverview: View {
                 let a = $0.items.map(\.1.severity).min()!, b = $1.items.map(\.1.severity).min()!
                 return a != b ? a < b : $0.items.count > $1.items.count
             }
+        let blocked = checker.blocked(in: app)
+        let stuckKeys = blocked.map { Checker.fixKey($0.screen.id, $0.run.id.uuidString) }
         return Section {
-            if groups.isEmpty {
+            if groups.isEmpty && blocked.isEmpty {
                 Text(screens.contains(where: \.reviewing) ? "Still looking…" : "Nothing found on the screens checked.").foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 0) {
+                    // What stopped people first: real barriers, and ticked from the start.
+                    if !blocked.isEmpty {
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Toggle("", isOn: Binding(
+                                get: { stuckKeys.contains { checker.isTicked($0, stuck: true) } },
+                                set: { on in for key in stuckKeys { checker.choices[key] = on } }
+                            ))
+                            .toggleStyle(.checkbox)
+                            .labelsHidden()
+                            .help("Fix what stopped them")
+                            Image(systemName: "person.fill.xmark").foregroundStyle(.red)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Tasks people could not do").font(.body.weight(.medium))
+                                Text(blocked.map { "\($0.run.persona.title): \($0.run.task.goal.lowercasedFirst) (\($0.screen.title))" }.joined(separator: "; "))
+                                    .font(.callout).foregroundStyle(.secondary).lineLimit(2)
+                            }
+                            Spacer()
+                            Text("\(blocked.count)").font(.title3.monospacedDigit()).foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 9)
+                        if !groups.isEmpty { Divider() }
+                    }
                     ForEach(groups, id: \.title) { group in
                         let names = Array(Set(group.items.map(\.0.title))).sorted()
                         let keys = group.items.map { Checker.fixKey($0.0.id, $0.1.id) }
                         HStack(spacing: 0) {
                         Toggle("", isOn: Binding(
-                            get: { !keys.allSatisfy(checker.excluded.contains) },
-                            set: { on in if on { checker.excluded.subtract(keys) } else { checker.excluded.formUnion(keys) } }
+                            get: { keys.contains { checker.isTicked($0, stuck: false) } },
+                            set: { on in for key in keys { checker.choices[key] = on } }
                         ))
                         .toggleStyle(.checkbox)
                         .labelsHidden()
@@ -144,10 +212,15 @@ struct AppOverview: View {
                     }
                 }
                 .background(RoundedRectangle(cornerRadius: 10).fill(.background.secondary))
+                Text(checker.ticked(in: app) == 0
+                     ? "Tick what to fix, or use Select. A small fix is easier to check and to review."
+                     : "Ticked to start with: what stopped people. Tick more to fix more in the same go; a small fix is easier to review.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .padding(.top, 6)
             }
         } header: {
             HStack(alignment: .firstTextBaseline) {
-                SectionTitle("What to fix", detail: "Problems by cause, across every screen")
+                SectionTitle("Problems", detail: "By cause, across every screen")
                 Spacer()
                 let count = checker.ticked(in: app)
                 Menu("Select") {
@@ -177,8 +250,33 @@ struct AppOverview: View {
                 }
             }
         } header: {
-            SectionTitle("Screens", detail: nil)
+            SectionTitle("Screens", detail: "As last checked. Explore App checks them all again.")
         }
+    }
+
+    // MARK: Reports
+
+    private var reports: some View {
+        Section {
+            HStack(alignment: .top, spacing: 16) {
+                report("For coding agents", "What is wrong, where, and how to check it, for Claude Code, Codex or a person.", button: "Write Report for Agents") { checker.writeAgentReport(for: app) }
+                report("For the law and buyers", "Drafts of the BFSG accessibility information and a VPAT EU conformance report, as PDF.", button: "Write Compliance Reports") { checker.writeComplianceReports(for: app) }
+            }
+        } header: {
+            SectionTitle("Reports", detail: nil)
+        }
+    }
+
+    private func report(_ title: String, _ detail: String, button: String, action: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.headline)
+            Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            Button(button, action: action)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 10).fill(.background.secondary))
     }
 
     // MARK: Code and tests
@@ -196,20 +294,6 @@ struct AppOverview: View {
                     }
                     Spacer()
                     Button(project == nil ? "Choose Folder…" : "Change…") { checker.chooseProject(for: app) }
-                }
-                Divider()
-                HStack {
-                    Text("A report coding agents and people can work from: what is wrong, where, and how to check it.").foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Write Report for Agents") { checker.writeAgentReport(for: app) }
-                        .help("Writes allyfix/ACCESSIBILITY.md and allyfix/findings.json into the app's source")
-                }
-                Divider()
-                HStack {
-                    Text("Drafts of what the law and buyers ask for: the accessibility information the German BFSG requires, and a conformance report in the VPAT EU format.").foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Write Compliance Reports") { checker.writeComplianceReports(for: app) }
-                        .help("Writes Barrierefreiheit and Conformance Report into allyfix/, as Markdown to edit and PDF to send")
                 }
                 if !tests.isEmpty {
                     Divider()
@@ -253,10 +337,8 @@ private struct SectionTitle: View {
 private struct PersonRow: View {
     let persona: Persona
     let outcome: (tried: Int, stuck: Int)?
-    let open: () -> Void
 
     var body: some View {
-        Button(action: open) {
             HStack(spacing: 12) {
                 Image(systemName: persona.symbol)
                     .font(.system(size: 15, weight: .medium))
@@ -284,10 +366,57 @@ private struct PersonRow: View {
                 .font(.callout)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
         .opacity(persona.ready ? 1 : 0.6)
+    }
+}
+
+/// A task someone could not do: where, why, and buttons to see how it went and the screen.
+private struct StuckRow: View {
+    @Bindable var checker: Checker
+    let app: String
+    let screen: CheckedScreen
+    let run: PersonaRun
+    let open: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Group {
+                if let jpeg = run.steps.last?.jpeg ?? run.steps.first?.jpeg, let image = NSImage(data: jpeg) {
+                    Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: 6).fill(.quaternary).aspectRatio(0.46, contentMode: .fit)
+                }
+            }
+            .frame(width: 54)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+            .help("What they saw")
+            VStack(alignment: .leading, spacing: 5) {
+                Label {
+                    Text("**\(screen.title):** could not \(run.task.goal.lowercasedFirst)")
+                } icon: {
+                    Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+                }
+                if let why = run.reason { Text(why).font(.callout).foregroundStyle(.secondary).lineLimit(3).fixedSize(horizontal: false, vertical: true) }
+                if let boundary = run.boundary { SizeScale(boundary: boundary) }
+                HStack(spacing: 14) {
+                    if let fixed = checker.fix(for: run, in: app) {
+                        Button { checker.selection = .fix(fixed.id) } label: { Label("Open Fix", systemImage: "wand.and.stars") }
+                            .help("See what the fix changed and whether they get through now; keep it or undo it there")
+                    } else {
+                        Button { checker.fix(stuck: run, on: screen) } label: { Label("Fix", systemImage: "wand.and.stars") }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(checker.fixing != nil || checker.testing != nil || checker.exploring != nil)
+                            .help("Muse Wonder changes the app's code for this on a new git branch; then \(run.persona.title.lowercased()) tries the task again")
+                    }
+                    Button("See What Happened", action: open)
+                    Button("Open \(screen.title)") { checker.selectedScreen = screen.id }.buttonStyle(.link)
+                }
+                .padding(.top, 2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.leading, 54).padding(.trailing, 12).padding(.bottom, 12)
     }
 }
 
@@ -324,6 +453,7 @@ private struct ScreenCard: View {
                 } else {
                     Text(checked.issues.isEmpty ? "No problems" : "\(checked.issues.count) problems")
                 }
+                Text(checked.date.formatted(.relative(presentation: .named)))
             }
             .font(.caption).foregroundStyle(.secondary)
         }

@@ -24,6 +24,8 @@ struct SavedTest: Codable {
     var route: [String]
     var steps: [Step]
     var expect: [PersonaRun.Expectation]
+    /// The text size the steps were taken at, when not the default.
+    var textSize: TextSize?
 
     /// The test a successful run makes; none when the run did not succeed or nothing in the
     /// accessibility tree tells that it did.
@@ -34,6 +36,7 @@ struct SavedTest: Codable {
         self.screen = screen
         self.route = route
         self.expect = expect
+        textSize = run.textSize
         steps = run.steps.compactMap { step in
             if let label = step.label, run.persona != .dexterity { return Step(activate: label) }
             if let point = step.point { return Step(touch: point, miss: step.miss) }
@@ -68,6 +71,10 @@ struct SavedTest: Codable {
 
     /// Runs the test again from a fresh start of the app. No model is asked anything.
     func replay() async throws -> Result {
+        try await TextSize.with(textSize) { try await replaySteps() }
+    }
+
+    private func replaySteps() async throws -> Result {
         try await Restart.app()
         for label in route {
             guard let element = Navigator.find(label, in: try Simulator.screen()) else {
