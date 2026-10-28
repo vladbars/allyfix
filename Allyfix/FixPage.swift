@@ -52,6 +52,7 @@ struct FixPage: View {
                 if run != nil, !running { decision }
                 if run != nil { screens }
                 people
+                if let run { tests(run) }
                 if let run, let keys = run.fixed, !keys.isEmpty {
                     Folded(title: "What VoiceOver says now") {
                         BeforeAfter(checker: checker, before: before, after: after, keys: keys)
@@ -260,6 +261,56 @@ struct FixPage: View {
                 }
             }
         }
+    }
+
+    // MARK: Saved tests
+
+    /// The tests the fix left behind, and whether they guard it.
+    @ViewBuilder private func tests(_ run: Fixer.Run) -> some View {
+        let names = after?.savedTests ?? []
+        if !names.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Saved tests").font(.title3.weight(.semibold))
+                    Spacer()
+                    if let proving = checker.proving, proving.screen == before.id {
+                        ProgressView().controlSize(.small)
+                        Text(proving.step).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                    } else if run.kept != true {
+                        Button(run.proof == nil ? "Prove They Catch It" : "Prove Again") { checker.proveTests(of: before.id) }
+                            .disabled(checker.fixing != nil || checker.testing != nil || checker.proving != nil)
+                            .help("Puts the code back as it was before the fix and runs the tests, which must fail; then brings the fix back, where they must pass. No model; keep the Simulator in view.")
+                    }
+                }
+                Text("What got them through is now a test in allyfix/tests: it runs again with no model, in seconds, and fails if the barrier comes back.")
+                    .font(.callout).foregroundStyle(.secondary)
+                ForEach(names, id: \.self) { name in
+                    let proof = run.proof?.first { $0.test == name }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(name, systemImage: "checklist").font(.callout.monospaced())
+                        if let proof {
+                            outcome("Without the fix", passed: proof.without == nil, why: proof.without, good: proof.without != nil)
+                            outcome("With the fix", passed: proof.with == nil, why: proof.with, good: proof.with == nil)
+                            Text(proof.guards ? "It guards the fix: it catches the barrier coming back." : "It does not guard the fix yet.")
+                                .font(.callout.weight(.medium)).foregroundStyle(proof.guards ? .green : .orange)
+                        }
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(.background.secondary))
+                }
+            }
+        }
+    }
+
+    /// One run of a test: whether it passed, and whether that is what it should do there.
+    private func outcome(_ title: String, passed: Bool, why: String?, good: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: passed ? "checkmark.circle.fill" : "xmark.octagon.fill").foregroundStyle(passed ? .green : .red)
+            Text("\(title): \(passed ? "passes" : "fails")\(why.map { ". \($0)" } ?? "")")
+            if good { Text("as it should").foregroundStyle(.secondary) }
+        }
+        .font(.callout)
     }
 
     // MARK: Code

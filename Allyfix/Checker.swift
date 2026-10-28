@@ -716,6 +716,55 @@ final class Checker {
         }
     }
 
+    /// A fix whose saved tests are being run before and after it, and what is being done.
+    private(set) var proving: (screen: CheckedScreen.ID, step: String)?
+
+    /// Shows the saved tests guard the fix: the code goes back to before the fix, where each
+    /// test must fail, then forward to the fix, where it must pass. No model is asked; the
+    /// source is left on the fix's branch, as it was.
+    func proveTests(of id: CheckedScreen.ID) {
+        guard let checked = screens.first(where: { $0.id == id }), let run = checked.fix, let after = run.after,
+              let names = screens.first(where: { $0.id == after })?.savedTests, !names.isEmpty,
+              proving == nil, fixing == nil, testing == nil, exploring == nil,
+              let project = project(for: Self.app(of: checked)) else { return }
+        fixProblem = nil
+        Task {
+            defer { proving = nil }
+            do {
+                guard try project.branch == run.branch else { throw Project.Problem.edit("The source is not on \(run.branch) now.") }
+                let tests = SavedTest.load(from: project.folder).filter { names.contains($0.fileName) }
+                var without: [String: String?] = [:]
+                proving = (id, "Going back to the code before the fix…")
+                _ = try project.git("switch", "-q", run.base)
+                do {
+                    for test in tests {
+                        proving = (id, "Without the fix: \(test.persona.title) tries \(test.task.lowercasedFirst)…")
+                        without[test.fileName] = Self.failure(try await test.replay())
+                    }
+                } catch {
+                    _ = try? project.git("switch", "-q", run.branch)
+                    throw error
+                }
+                proving = (id, "Bringing the fix back…")
+                _ = try project.git("switch", "-q", run.branch)
+                var proof: [Fixer.Run.Proof] = []
+                for test in tests {
+                    proving = (id, "With the fix: \(test.persona.title) tries \(test.task.lowercasedFirst)…")
+                    proof.append(.init(test: test.fileName, without: without[test.fileName] ?? nil, with: Self.failure(try await test.replay())))
+                }
+                update(id) { $0.fix?.proof = proof }
+                if let done = screens.first(where: { $0.id == id }) { History.save(done) }
+            } catch {
+                fixProblem = error.localizedDescription
+            }
+        }
+    }
+
+    private static func failure(_ result: SavedTest.Result) -> String? {
+        if case .failed(let why) = result { return why }
+        return nil
+    }
+
     /// Says a line as VoiceOver would, for hearing a screen before and after a fix.
     func say(_ text: String) {
         voice.stopSpeaking(at: .immediate)

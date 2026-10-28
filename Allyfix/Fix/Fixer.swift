@@ -37,6 +37,20 @@ enum Fixer {
         var stuck: [UUID]?
         /// Brought into the branch it started from, and its own branch gone.
         var kept: Bool?
+        /// The saved tests run on the code before the fix and after it: each must fail
+        /// before and pass after, or it does not guard this fix.
+        var proof: [Proof]?
+
+        struct Proof: Codable, Hashable {
+            let test: String
+            /// Why it failed on the code before the fix; nil when it passed there.
+            let without: String?
+            /// Why it failed with the fix; nil when it passed.
+            let with: String?
+
+            /// It catches the barrier coming back, and holds while the fix is in.
+            var guards: Bool { without != nil && with == nil }
+        }
 
         var files: Set<String> { Set(applied.map(\.path)) }
     }
