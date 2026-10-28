@@ -204,6 +204,13 @@ struct AppOverview: View {
                     Button("Write Report for Agents") { checker.writeAgentReport(for: app) }
                         .help("Writes allyfix/ACCESSIBILITY.md and allyfix/findings.json into the app's source")
                 }
+                Divider()
+                HStack {
+                    Text("Drafts of what the law and buyers ask for: the accessibility information the German BFSG requires, and a conformance report in the VPAT EU format.").foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Write Compliance Reports") { checker.writeComplianceReports(for: app) }
+                        .help("Writes Barrierefreiheit and Conformance Report into allyfix/, as Markdown to edit and PDF to send")
+                }
                 if !tests.isEmpty {
                     Divider()
                     HStack {

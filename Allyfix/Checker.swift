@@ -193,22 +193,36 @@ final class Checker {
     /// Writes what was found in an app for coding agents into its source, or wherever the
     /// person chooses when the source is not set; shows the file in the Finder.
     func writeAgentReport(for app: String) {
-        var folder = project(for: app)?.folder
-        if folder == nil {
-            let panel = NSOpenPanel()
-            panel.message = "Choose where to write the report for \(app)."
-            panel.canChooseDirectories = true
-            panel.canChooseFiles = false
-            guard panel.runModal() == .OK else { return }
-            folder = panel.url
-        }
-        guard let folder else { return }
+        guard let folder = reportFolder(for: app, what: "the report") else { return }
         do {
             let file = try AgentReport.write(AgentReport.findings(of: app, checker: self), to: folder)
             NSWorkspace.shared.activateFileViewerSelecting([file])
         } catch {
             problem = "Could not write the report: \(error.localizedDescription)"
         }
+    }
+
+    /// Writes the BFSG accessibility information and the conformance report, as Markdown to
+    /// edit and as PDF to send, next to the report for agents; shows the PDFs in the Finder.
+    func writeComplianceReports(for app: String) {
+        guard let folder = reportFolder(for: app, what: "the compliance reports") else { return }
+        do {
+            let files = try Compliance.write(Compliance.facts(of: app, checker: self), to: folder)
+            NSWorkspace.shared.activateFileViewerSelecting(files)
+        } catch {
+            problem = "Could not write the reports: \(error.localizedDescription)"
+        }
+    }
+
+    /// The app's source, or wherever the person chooses when it is not set.
+    private func reportFolder(for app: String, what: String) -> URL? {
+        if let folder = project(for: app)?.folder { return folder }
+        let panel = NSOpenPanel()
+        panel.message = "Choose where to write \(what) for \(app)."
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        guard panel.runModal() == .OK else { return nil }
+        return panel.url
     }
 
     /// Two checks are of the same screen when one is the check after a fix of the other, or

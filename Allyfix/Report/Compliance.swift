@@ -101,11 +101,23 @@ enum Compliance {
         return (level, "\(failing.count) problem\(failing.count == 1 ? "" : "s") on \(where_): \(what)\(failing.count > 3 ? "; …" : "").")
     }
 
+    /// Writes both documents into `allyfix/` in the folder, each as Markdown and as PDF;
+    /// returns the PDFs.
+    static func write(_ facts: Facts, to folder: URL) throws -> [URL] {
+        let dir = folder.appending(path: "allyfix")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return try [("Barrierefreiheit", bfsg(facts)), ("Conformance Report", acr(facts))].map { name, markdown in
+            try markdown.write(to: dir.appending(path: "\(name).md"), atomically: true, encoding: .utf8)
+            let pdf = dir.appending(path: "\(name).pdf")
+            try Paper.pdf(fromMarkdown: markdown, to: pdf)
+            return pdf
+        }
+    }
+
     // MARK: BFSG information, in German
 
     static func bfsg(_ facts: Facts) -> String {
         let date = (facts.lastChecked ?? Date()).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "de_DE")))
-        let blocking = facts.open.filter { $0.issue.severity == .blocker }
         var lines = [
             "# Informationen zur Barrierefreiheit: \(facts.app)",
             "",
@@ -140,10 +152,20 @@ enum Compliance {
         } else {
             lines.append("Folgende Barrieren sind bekannt; die Behebung ist geplant bis [Datum]:")
             lines.append("")
-            for finding in (blocking.isEmpty ? facts.open : blocking).prefix(12) {
-                lines.append("- \(finding.screen): \(finding.issue.title.withIconsNamed) (WCAG \(finding.issue.wcag))")
+            // By screen and criterion, in plain German: the findings themselves are in English.
+            var groups: [(screen: String, number: String, count: Int)] = []
+            for finding in facts.open {
+                let number = finding.issue.wcag.firstMatch(of: /\d\.\d+\.\d+/).map { String($0.output) } ?? ""
+                if let index = groups.firstIndex(where: { $0.screen == finding.screen && $0.number == number }) {
+                    groups[index].count += 1
+                } else {
+                    groups.append((finding.screen, number, 1))
+                }
             }
-            if facts.open.count > 12 { lines.append("- und weitere \(facts.open.count - 12) kleinere Mängel.") }
+            for group in groups {
+                let what = germanBarrier[group.number] ?? "Barriere"
+                lines.append("- \(group.screen): \(what)\(group.number.isEmpty ? "" : " (WCAG \(group.number))")\(group.count > 1 ? ", \(group.count) Stellen" : "")")
+            }
         }
         lines += [
             "",
@@ -158,6 +180,24 @@ enum Compliance {
         ]
         return lines.joined(separator: "\n")
     }
+
+    /// What failing each criterion Allyfix can find means, in plain German.
+    private static let germanBarrier = [
+        "1.1.1": "Bilder und Symbole ohne Textalternative",
+        "1.3.1": "Struktur und Zusammenhänge für Screenreader nicht erkennbar",
+        "1.3.2": "Lesereihenfolge nicht sinnvoll",
+        "1.4.1": "Informationen nur über Farbe vermittelt",
+        "1.4.3": "Zu geringer Textkontrast",
+        "1.4.4": "Text lässt sich nicht vergrößern",
+        "1.4.11": "Zu geringer Kontrast von Bedienelementen",
+        "2.4.3": "Fokus-Reihenfolge nicht sinnvoll",
+        "2.4.6": "Unklare Überschriften oder Beschriftungen",
+        "2.5.3": "Sichtbare Beschriftung fehlt im zugänglichen Namen",
+        "2.5.8": "Zu kleine Bedienelemente",
+        "3.1.2": "Sprache von Textteilen nicht ausgezeichnet",
+        "3.3.2": "Fehlende Beschriftungen oder Anweisungen",
+        "4.1.2": "Name, Rolle oder Zustand von Bedienelementen fehlt",
+    ]
 
     private static func german(_ persona: Persona) -> String {
         switch persona {
@@ -174,7 +214,7 @@ enum Compliance {
     // MARK: Conformance report, VPAT 2.5 EU shape
 
     static func acr(_ facts: Facts) -> String {
-        let date = (facts.lastChecked ?? Date()).formatted(date: .long, time: .omitted)
+        let date = (facts.lastChecked ?? Date()).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "en_GB")))
         var lines = [
             "# Accessibility Conformance Report: \(facts.app)",
             "",

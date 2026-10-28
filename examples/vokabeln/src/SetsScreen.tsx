@@ -1,12 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SetScreen } from './SetScreen';
 import { colors, fonts, shadow } from './theme';
 import { sets, WordSet } from './words';
 
 export function SetsScreen() {
   const [mine, setMine] = useState(false);
+  const [open, setOpen] = useState<WordSet | null>(null);
   const [first, ...rest] = sets;
+  if (open) return <SetScreen set={open} onBack={() => setOpen(null)} />;
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
@@ -33,7 +36,7 @@ export function SetsScreen() {
         <Text style={styles.empty}>Sets you make from photos show up here.</Text>
       ) : (
         <>
-          <Pressable style={styles.feature} onPress={() => Alert.alert(first.title)}>
+          <Pressable style={styles.feature} onPress={() => setOpen(first)}>
             <Image source={first.image} style={styles.featureArt} />
             <View style={styles.featureText}>
               <Text style={styles.featureLabel}>Continue</Text>
@@ -42,7 +45,7 @@ export function SetsScreen() {
             </View>
           </Pressable>
           {rest.map((set) => (
-            <SetRow key={set.id} set={set} />
+            <SetRow key={set.id} set={set} onOpen={() => setOpen(set)} />
           ))}
         </>
       )}
@@ -63,9 +66,9 @@ function Progress({ set }: { set: WordSet }) {
   );
 }
 
-function SetRow({ set }: { set: WordSet }) {
+function SetRow({ set, onOpen }: { set: WordSet; onOpen: () => void }) {
   return (
-    <Pressable style={styles.row} onPress={() => Alert.alert(set.title)}>
+    <Pressable style={styles.row} onPress={onOpen}>
       <Image source={set.image} style={styles.cover} />
       <View style={styles.rowText}>
         <Text style={styles.rowTitle}>{set.title}</Text>

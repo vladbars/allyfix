@@ -1,5 +1,6 @@
 import ApplicationServices
 import Foundation
+import PDFKit
 import Testing
 @testable import Allyfix
 
@@ -81,5 +82,30 @@ struct ChoosingTests {
         #expect(checker.chosen(checked).issues.isEmpty)
         checker.pick(.all, on: [checked])
         #expect(checker.chosen(checked).issues.count == checked.issues.count)
+    }
+}
+
+@MainActor
+struct ComplianceTests {
+    @Test func reportsJudgeOnlyWhatWasCheckedAndComeOutAsPaper() throws {
+        let frame = CGRect(x: 0, y: 0, width: 60, height: 60)
+        let element = Element(id: 0, role: "AXButton", subrole: "", label: "", value: "", frame: frame, pointFrame: frame, canPress: true)
+        let screen = Screen(device: "iPhone", frame: .init(x: 0, y: 0, width: 300, height: 650), scale: 1, elements: [element])
+        let checked = CheckedScreen(screen: screen, issues: Audit.run(screen.elements))
+        let facts = Compliance.Facts(app: "Vokabeln", screens: [checked], open: checked.issues.map { .init(screen: "Today", issue: $0) },
+                                     people: [], firstChecked: Date(), lastChecked: Date())
+        let acr = Compliance.acr(facts)
+        #expect(acr.contains("| 11.1.4.3 Contrast (Minimum) (Level AA) | Not Evaluated |"))
+        #expect(!acr.contains("| 11.4.1.2 Name, Role, Value (Level A) | Supports |"))
+        #expect(Compliance.bfsg(facts).contains("## d) Zuständige Marktüberwachungsbehörde"))
+
+        let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let pdfs = try Compliance.write(facts, to: folder)
+        #expect(pdfs.count == 2)
+        for pdf in pdfs {
+            let data = try Data(contentsOf: pdf)
+            #expect(data.starts(with: Data("%PDF".utf8)))
+        }
+        #expect(PDFDocument(url: pdfs[1])!.pageCount >= 2)
     }
 }
