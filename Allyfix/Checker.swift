@@ -182,6 +182,12 @@ final class Checker {
     }
 
     /// An app's fixes, latest first, by the checks they were made from.
+    /// The kept fix made for a task someone could not do: the barrier counts as gone, until
+    /// people are tested again.
+    func keptFix(for run: PersonaRun) -> CheckedScreen? {
+        screens.first { $0.fix?.kept == true && $0.fix?.stuck?.contains(run.id) == true }
+    }
+
     func fixes(of app: String) -> [CheckedScreen] {
         screens(of: app).filter { $0.fix != nil }.sorted { $0.date > $1.date }
     }
@@ -286,6 +292,14 @@ final class Checker {
     var explore: Task<Void, Never>?
     /// Saved tests run again, by file name: nil while running, then the result.
     var savedResults: [String: SavedTest.Result?] = [:]
+    /// The latest run of the checks that need no model, per app: under way or done.
+    var checkRuns: [String: CheckRun] = [:]
+    var checkTask: Task<Void, Never>?
+    /// Apps whose code is watched: a change runs the checks again.
+    var watching: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "watching") ?? [])
+    /// What the code looked like at the last look, per app, to tell when it changed.
+    var codeStamps: [String: String] = [:]
+    var watchTimer: Timer?
     private(set) var problem: String?
     var permitted = Simulator.permitted()
     /// The screen checked last in this launch, which the Simulator most likely still shows.
@@ -328,11 +342,19 @@ final class Checker {
     func capture(fixOf before: CheckedScreen.ID? = nil, select: Bool = true) throws -> CheckedScreen {
         let screen = try Simulator.screen()
         if before == nil, select { Restart.forgetApp() }
-        // The same screen again replaces the earlier check of it, unless that one was fixed.
+        // The same screen again replaces a plain earlier check of it; a check people were
+        // tested on, or that a fix was made from or checked after, stays as history.
         let labels = screen.elements.map(\.label)
-        remove { $0.screen.elements.map(\.label) == labels && $0.fix == nil }
+        let replaced = screens.filter { $0.screen.elements.map(\.label) == labels && Self.plain($0) }
+        remove { $0.screen.elements.map(\.label) == labels && Self.plain($0) }
         var checked = CheckedScreen(screen: screen, issues: Audit.run(screen.elements))
         checked.fixOf = before
+        // What the walk learned about the screen stays: the way to it.
+        checked.route = replaced.lazy.compactMap(\.route).first
+        // Listed under the app being looked at, or the last one checked, until the Simulator's
+        // log says which app it is; that takes a few seconds.
+        checked.app = before.flatMap { id in screens.first { $0.id == id }?.app } ?? selectedApp.flatMap { $0 != Self.unknownApp ? $0 : nil }
+            ?? screens.filter { $0.app != nil && $0.app != Self.unknownApp }.max { $0.date < $1.date }?.app
         screens.append(checked)
         live = checked.id
         if select {
@@ -398,7 +420,7 @@ final class Checker {
         History.save(done)
         // A screen checked twice under different element lists is still one screen.
         if let name = done.name {
-            remove { $0.id != id && $0.name == name && $0.section == done.section && $0.app == done.app && !$0.reviewing && $0.fix == nil && $0.fixOf == nil }
+            remove { $0.id != id && $0.name == name && $0.section == done.section && $0.app == done.app && !$0.reviewing && Self.plain($0) }
         }
     }
 
@@ -408,30 +430,74 @@ final class Checker {
     func testPersonas(tasks count: Int = 2, people: [Persona] = Persona.people) {
         guard testing == nil else { return }
         testProblem = nil
-        var checked = selected
-        if checked == nil || checked?.id != live {
+        let old = selected
+        test = Task { await test(old, count: count, people: people, select: true) }
+    }
+
+    /// Several screens tested one after another, each opened in the Simulator in turn.
+    private(set) var testQueue: (done: Int, total: Int)?
+
+    func testPeople(on ids: [CheckedScreen.ID]) {
+        guard !busy else { return }
+        testProblem = nil
+        let targets = ids.compactMap { id in screens.first { $0.id == id } }
+        testQueue = (0, targets.count)
+        test = Task {
+            defer { testQueue = nil }
+            for (index, old) in targets.enumerated() {
+                if Task.isCancelled { break }
+                testQueue = (index, targets.count)
+                await test(old, count: 2, people: Persona.people, select: false)
+            }
+        }
+    }
+
+    /// Tests people on a screen; one checked before is opened again from a fresh start and
+    /// checked anew first, since people need it on the Simulator.
+    private func test(_ old: CheckedScreen?, count: Int, people: [Persona], select: Bool) async {
+        var checked: CheckedScreen
+        if let old, old.id == live {
+            checked = old
+        } else {
             do {
-                let old = selected
-                var fresh = try capture()
-                // The same screen tested again: one entry, not two.
                 if let old {
+                    testing = (old.id, "Opening \(old.title) in the Simulator…")
+                    try await Restart.app()
+                    var route = old.route ?? versions(of: old).lazy.compactMap(\.route).first ?? []
+                    if let jpeg = old.jpeg {
+                        _ = try await Navigator.reach(old.screen, picture: jpeg, name: old.title, route: &route, client: ModelClient.fromEnvironment())
+                    }
+                    testing = nil
+                }
+                var fresh = try capture(select: select)
+                if let old {
+                    let route = old.route ?? versions(of: old).lazy.compactMap(\.route).first
                     update(fresh.id) {
                         $0.name = old.name
                         $0.section = old.section
                         $0.app = old.app
+                        $0.route = $0.route ?? route
                     }
                     fresh.name = old.name
-                    remove { $0.id == old.id && $0.fix == nil }
+                    fresh.section = old.section
+                    fresh.app = old.app
+                    if Self.plain(old) { remove { $0.id == old.id } }
                 }
                 Task { await review(fresh) }
                 checked = fresh
             } catch {
+                testing = nil
                 testProblem = error.localizedDescription
                 return
             }
         }
-        guard let checked else { return }
-        test = Task { await testPersonas(checked, count: count, people: people) }
+        await testPersonas(checked, count: count, people: people)
+    }
+
+    /// A check with nothing but what it found: no people tested on it, no fix made from it,
+    /// not the check after a fix. Another check of the same screen can take its place.
+    static func plain(_ checked: CheckedScreen) -> Bool {
+        checked.tasks == nil && checked.fix == nil && checked.fixOf == nil
     }
 
     func stopTesting() {
@@ -458,7 +524,11 @@ final class Checker {
                 // The control goes first: a task even it cannot do is not a test of access.
                 for persona in [Persona.control] + people where persona.ready {
                     try Task.checkCancellation()
-                    if persona != .control, screens.first(where: { $0.id == id })?.run(.control, task)?.achieved != true { break }
+                    if persona != .control, let control = screens.first(where: { $0.id == id })?.run(.control, task), control.achieved != true {
+                        // Said plainly: nobody else tries what even the control could not do.
+                        if let problem = control.problem { testProblem = "Stopped: \(problem) Nobody else tried \(task.goal.lowercasedFirst)." }
+                        break
+                    }
                     testing = (id, "\(persona.title): \(task.goal)…")
                     var run: PersonaRun
                     do {
@@ -492,6 +562,12 @@ final class Checker {
                         charged = true
                     }
                     keep(run, in: id)
+                    // Someone who got through what a kept fix was made for: that becomes a test.
+                    if run.achieved == true, persona != .control, versions(of: checked).contains(where: { version in
+                        (version.personaRuns ?? []).contains { $0.persona == persona && $0.task.goal == task.goal && $0.achieved == false && keptFix(for: $0) != nil }
+                    }), let now = screens.first(where: { $0.id == id }) {
+                        keepAsTest(run, on: now, route: route)
+                    }
                 }
             }
             try await Restart.app()
@@ -503,6 +579,37 @@ final class Checker {
             testProblem = error.localizedDescription
         }
         if let done = screens.first(where: { $0.id == id }) { History.save(done) }
+    }
+
+    /// Keeps a task someone managed as a test in the app's source, committed on its own:
+    /// nothing else changed in the source goes with it.
+    @discardableResult
+    func keepAsTest(_ run: PersonaRun, on checked: CheckedScreen, route: [String]? = nil) -> Bool {
+        guard let project = project(for: Self.app(of: checked)) else {
+            testProblem = "Choose the app's source folder first: tests are kept there."
+            return false
+        }
+        let way = route ?? checked.route ?? versions(of: checked).lazy.compactMap(\.route).first ?? []
+        guard let test = SavedTest(run, screen: checked.title, route: way) else {
+            testProblem = "Nothing VoiceOver reads tells that this task is done, so it cannot be checked without a model."
+            return false
+        }
+        do {
+            let file = try test.save(in: project.folder)
+            try project.commit("Add accessibility test: \(run.persona.title) can \(run.task.goal.lowercasedFirst)", only: ["allyfix/tests/" + file.lastPathComponent])
+            update(checked.id) { $0.savedTests = Array(Set(($0.savedTests ?? []) + [file.lastPathComponent])).sorted() }
+            if let done = screens.first(where: { $0.id == checked.id }) { History.save(done) }
+            return true
+        } catch {
+            testProblem = "Could not keep the test: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// Whether a run is already kept as a test in the app's source.
+    func isKept(_ run: PersonaRun, on checked: CheckedScreen) -> Bool {
+        guard let project = project(for: Self.app(of: checked)), let test = SavedTest(run, screen: checked.title, route: []) else { return false }
+        return FileManager.default.fileExists(atPath: project.folder.appending(path: "allyfix/tests/" + test.fileName).path)
     }
 
     /// Puts a run, finished or under way, in the screen's list in place of its earlier self.
@@ -609,6 +716,22 @@ final class Checker {
     }
 
     /// Fixes what is ticked on every screen of an app, in one go.
+    /// What a fix of these screens would take: everything found and the tasks people could
+    /// not do, or only what blocks someone.
+    func work(on ids: Set<CheckedScreen.ID>, blockingOnly: Bool) -> [CheckedScreen] {
+        screens.filter { ids.contains($0.id) }.map { checked in
+            var with = withEarlierTest(checked)
+            if blockingOnly { with.issues = with.issues.filter { $0.severity == .blocker } }
+            with.personaRuns = with.personaRuns?.filter { $0.persona == .control || $0.achieved != false || keptFix(for: $0) == nil }
+            return with
+        }.filter(Self.hasWork)
+    }
+
+    /// Fixes the chosen screens in one go, on one branch.
+    func fix(screens ids: Set<CheckedScreen.ID>, blockingOnly: Bool) {
+        fix(work(on: ids, blockingOnly: blockingOnly))
+    }
+
     func fixSelected(in app: String) {
         fix(latestScreens(of: app).map(chosen).filter(Self.hasWork))
     }

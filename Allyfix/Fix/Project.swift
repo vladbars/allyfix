@@ -69,6 +69,12 @@ struct Project {
         _ = try git("commit", "-q", "-m", message, "--", ".")
     }
 
+    /// Commits these files and nothing else, whatever else is changed or staged.
+    func commit(_ message: String, only files: [String]) throws {
+        _ = try git(["add", "--"] + files)
+        _ = try git(["commit", "-q", "-m", message, "--"] + files)
+    }
+
     /// Goes back to `base` and drops the fixes' branch. Uncommitted work elsewhere in the
     /// repository comes along untouched; if it is in the way, git refuses and says why.
     func undo(branch: String, base: String) throws {
@@ -93,6 +99,11 @@ struct Project {
 
     @discardableResult
     func git(_ arguments: String...) throws -> String {
+        try git(arguments)
+    }
+
+    @discardableResult
+    func git(_ arguments: [String]) throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         process.arguments = ["-C", folder.path] + arguments

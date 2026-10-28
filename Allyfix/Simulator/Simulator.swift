@@ -109,7 +109,10 @@ enum Simulator {
     /// The app whose window is on top at a point on the Mac's screen.
     private static func owner(at point: CGPoint) -> pid_t? {
         let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        // Allyfix's own highlight lies over the Simulator but lets clicks through.
+        let passThrough = Set(NSApp.windows.filter(\.ignoresMouseEvents).map(\.windowNumber))
         for window in windows where window[kCGWindowLayer as String] as? Int == 0 {
+            if let number = window[kCGWindowNumber as String] as? Int, passThrough.contains(number) { continue }
             guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: bounds), rect.contains(point) else { continue }
             return window[kCGWindowOwnerPID as String] as? pid_t

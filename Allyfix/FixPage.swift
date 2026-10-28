@@ -121,7 +121,7 @@ struct FixPage: View {
                 }
             }
             if running {
-                Text("Takes a few minutes. Look around meanwhile; keep the Simulator in view.").font(.callout).foregroundStyle(.secondary).padding(.top, 4)
+                Text("Look around meanwhile; keep the Simulator in view.").font(.callout).foregroundStyle(.secondary).padding(.top, 4)
             }
         }
         .padding(16)
@@ -282,7 +282,7 @@ struct FixPage: View {
                             .help("Puts the code back as it was before the fix and runs the tests, which must fail; then brings the fix back, where they must pass. No model; keep the Simulator in view.")
                     }
                 }
-                Text("What got them through is now a test in allyfix/tests: it runs again with no model, in seconds, and fails if the barrier comes back.")
+                Text("What got them through is now a test in allyfix/tests: it runs again with no model, and fails if the barrier comes back.")
                     .font(.callout).foregroundStyle(.secondary)
                 ForEach(names, id: \.self) { name in
                     let proof = run.proof?.first { $0.test == name }

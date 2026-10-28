@@ -133,7 +133,10 @@ private struct AppList: View {
         // The app being looked at stays open in the list, from the start: opening it at the
         // moment a screen is chosen from the overview changes the list mid-update, and SwiftUI
         // then drops the change of page.
-        .onAppear { if let app = checker.selectedApp { open.insert(app) } }
+        .onAppear {
+            if let app = checker.selectedApp { open.insert(app) }
+            checker.startWatching()
+        }
         .onChange(of: checker.selection) { _, _ in
             if let app = checker.selectedApp { open.insert(app) }
         }

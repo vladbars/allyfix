@@ -51,6 +51,18 @@ struct FixTests {
         #expect(!(try project.git("branch", "--list", "allyfix/card-2")).contains("card-2"))
     }
 
+    @Test func aTestIsCommittedAloneAndWorkInProgressStays() throws {
+        let project = try project()
+        try project.git("config", "user.name", "Test")
+        try project.git("config", "user.email", "test@example.com")
+        try "work in progress".write(to: project.folder.appending(path: "Card.tsx"), atomically: true, encoding: .utf8)
+        try FileManager.default.createDirectory(at: project.folder.appending(path: "allyfix/tests"), withIntermediateDirectories: true)
+        try "{}".write(to: project.folder.appending(path: "allyfix/tests/save.lowVision.json"), atomically: true, encoding: .utf8)
+        try project.commit("Add accessibility test", only: ["allyfix/tests/save.lowVision.json"])
+        #expect(try project.git("show", "--name-only", "--format=", "HEAD").trimmingCharacters(in: .whitespacesAndNewlines) == "allyfix/tests/save.lowVision.json")
+        #expect(try project.git("status", "--porcelain").contains("Card.tsx"))
+    }
+
     @Test func aDirtyProjectIsNotTouched() throws {
         let project = try project()
         try "changed".write(to: project.folder.appending(path: "Card.tsx"), atomically: true, encoding: .utf8)
