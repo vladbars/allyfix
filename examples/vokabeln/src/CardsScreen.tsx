@@ -13,7 +13,15 @@ export function CardsScreen() {
   const [filter, setFilter] = useState<Filter>('All');
   const [done, setDone] = useState(3);
   const [top, setTop] = useState(0);
-  const deck = words.filter((word) => filter === 'All' || filter === 'Saved' || word.level === (filter as Level));
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const toggleSaved = (id: string) =>
+    setSavedIds((prev) => {
+      const nextSaved = new Set(prev);
+      if (nextSaved.has(id)) nextSaved.delete(id);
+      else nextSaved.add(id);
+      return nextSaved;
+    });
+  const deck = words.filter((word) => filter === 'All' || (filter === 'Saved' ? savedIds.has(word.id) : word.level === (filter as Level)));
   const visible = deck.length ? [0, 1, 2].map((i) => deck[(top + i) % deck.length]) : [];
 
   const next = () => {
@@ -65,17 +73,17 @@ export function CardsScreen() {
             const depth = 2 - i;
             return (
               <View key={`${word.id}-${depth}`} style={[styles.card, { transform: [{ translateY: depth * 24 }, { scale: 1 - depth * 0.04 }], opacity: 1 - depth * 0.12 }]}>
-                <CardFace word={word} />
+                <CardFace word={word} saved={savedIds.has(word.id)} onToggleSaved={() => toggleSaved(word.id)} />
               </View>
             );
           })}
-        {visible[0] && <TopCard key={`${visible[0].id}-${top}`} word={visible[0]} onAnswer={next} />}
+        {visible[0] && <TopCard key={`${visible[0].id}-${top}`} word={visible[0]} onAnswer={next} saved={savedIds.has(visible[0].id)} onToggleSaved={() => toggleSaved(visible[0].id)} />}
       </View>
     </View>
   );
 }
 
-function TopCard({ word, onAnswer }: { word: Word; onAnswer: (knewIt: boolean) => void }) {
+function TopCard({ word, onAnswer, saved, onToggleSaved }: { word: Word; onAnswer: (knewIt: boolean) => void; saved: boolean; onToggleSaved: () => void }) {
   const flip = useRef(new Animated.Value(0)).current;
   const exit = useRef(new Animated.Value(0)).current;
   const enter = useRef(new Animated.Value(0)).current;
@@ -115,7 +123,7 @@ function TopCard({ word, onAnswer }: { word: Word; onAnswer: (knewIt: boolean) =
     <Animated.View style={[styles.card, motion]}>
       <Pressable style={styles.flex} onPress={turn}>
         <Animated.View style={[styles.side, front]}>
-          <CardFace word={word} onFlip={turn} />
+          <CardFace word={word} onFlip={turn} saved={saved} onToggleSaved={onToggleSaved} />
         </Animated.View>
         <Animated.View style={[styles.side, styles.backSide, back]}>
           <Image source={word.image} style={styles.backArt} />
@@ -137,8 +145,7 @@ function TopCard({ word, onAnswer }: { word: Word; onAnswer: (knewIt: boolean) =
   );
 }
 
-function CardFace({ word, onFlip }: { word: Word; onFlip?: () => void }) {
-  const [saved, setSaved] = useState(false);
+function CardFace({ word, onFlip, saved, onToggleSaved }: { word: Word; onFlip?: () => void; saved: boolean; onToggleSaved: () => void }) {
   const [quiz, setQuiz] = useState(false);
   const say = () => Speech.speak(`${word.article} ${word.word}`, { language: 'de-DE', rate: 0.9 });
 
@@ -147,8 +154,9 @@ function CardFace({ word, onFlip }: { word: Word; onFlip?: () => void }) {
       <View style={styles.artFrame}>
         <Image source={word.image} style={styles.art} />
         <Text style={styles.level}>{word.level}</Text>
-        <Pressable onPress={() => setSaved(!saved)} style={styles.bookmark}>
-          <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={20} color={saved ? colors.terracotta : colors.ink} />
+        <Pressable onPress={onToggleSaved} style={[styles.bookmark, saved && styles.bookmarkOn]} accessibilityRole="button" accessibilityLabel={saved ? `Saved, ${word.word}` : `Save ${word.word}`} accessibilityState={{ selected: saved }}>
+          <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={24} color={saved ? '#fff' : colors.ink} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Text style={[styles.bookmarkText, saved && styles.bookmarkTextOn]}>{saved ? 'Saved' : 'Save'}</Text>
         </Pressable>
       </View>
       <View style={styles.wordRow}>
@@ -224,7 +232,10 @@ const styles = StyleSheet.create({
   artFrame: { height: 200, borderRadius: 20, overflow: 'hidden', backgroundColor: colors.paper },
   art: { width: '100%', height: '100%', resizeMode: 'cover' },
   level: { position: 'absolute', top: 10, left: 10, fontFamily: fonts.bold, fontSize: 12, color: colors.accent, backgroundColor: 'rgba(255,252,246,0.9)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, overflow: 'hidden' },
-  bookmark: { position: 'absolute', top: 8, right: 8, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,252,246,0.9)', alignItems: 'center', justifyContent: 'center' },
+  bookmark: { position: 'absolute', top: 8, right: 8, minWidth: 92, height: 48, paddingHorizontal: 12, borderRadius: 24, backgroundColor: 'rgba(255,252,246,0.95)', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  bookmarkOn: { backgroundColor: colors.terracotta },
+  bookmarkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
+  bookmarkTextOn: { color: '#fff' },
   wordRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 16 },
   article: { fontFamily: fonts.displayMedium, fontSize: 24 },
   word: { fontFamily: fonts.display, fontSize: 38, color: colors.ink },
