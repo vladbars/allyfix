@@ -27,6 +27,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Allyfix measures whether the app in the Simulator played a sound, to test it for people who cannot hear. Nothing is recorded.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Vladislav Baranov</string>
 </dict>

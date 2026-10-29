@@ -483,6 +483,7 @@ private struct SavedTestRow: View {
                 case .some(.none): ProgressView().controlSize(.mini)
                 case .some(.some(.passed)): Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                 case .some(.some(.failed)): Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+                case .some(.some(.unsure)): Image(systemName: "questionmark.circle.fill").foregroundStyle(.yellow)
                 case .none: Image(systemName: "circle.dashed").foregroundStyle(.tertiary)
                 }
             }
@@ -490,6 +491,8 @@ private struct SavedTestRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("\(test.persona.title): \(test.task)").font(.callout)
                 if case .some(.some(.failed(let why))) = result {
+                    Text(why).font(.caption).foregroundStyle(.secondary)
+                } else if case .some(.some(.unsure(let why))) = result {
                     Text(why).font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("\(test.screen) · allyfix/tests/\(test.fileName)").font(.caption).foregroundStyle(.secondary)

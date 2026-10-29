@@ -24,7 +24,9 @@ struct CheckRun: Codable {
     var problem: String?
 
     var lost: Int { screens.values.filter { $0 != .reached }.count }
-    var failed: Int { tests.values.filter { $0 != nil }.count }
+    /// Tests that failed; those that could not tell, as the screen showed other content, apart.
+    var failed: Int { tests.values.filter { $0 != nil && $0?.hasPrefix("Can't tell") != true }.count }
+    var unsure: Int { tests.values.filter { $0?.hasPrefix("Can't tell") == true }.count }
     var passed: Bool { finished && problem == nil && lost == 0 && failed == 0 }
 
     /// The last finished run of each app, kept between launches.
@@ -69,7 +71,10 @@ extension Checker {
                         try Task.checkCancellation()
                         checkRuns[app]?.testing = test.fileName
                         let result = try await test.replay()
-                        if case .failed(let why) = result { checkRuns[app]?.tests[test.fileName] = .some(why) } else { checkRuns[app]?.tests[test.fileName] = .some(nil) }
+                        switch result {
+                        case .passed: checkRuns[app]?.tests[test.fileName] = .some(nil)
+                        case .failed(let why), .unsure(let why): checkRuns[app]?.tests[test.fileName] = .some(why)
+                        }
                     }
                 }
             } catch is CancellationError {

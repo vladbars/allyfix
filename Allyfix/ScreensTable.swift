@@ -96,7 +96,7 @@ struct ScreensTable: View {
     private func summary(_ run: CheckRun) -> String {
         if let problem = run.problem { return problem }
         var parts = ["\(run.screens.count - run.lost) of \(run.screens.count) screens reachable"]
-        if !run.tests.isEmpty { parts.append("\(run.tests.count - run.failed) of \(run.tests.count) saved tests pass") }
+        if !run.tests.isEmpty { parts.append("\(run.tests.count - run.failed - run.unsure) of \(run.tests.count) saved tests pass" + (run.unsure > 0 ? ", \(run.unsure) can't tell" : "")) }
         return parts.joined(separator: " · ")
     }
 

@@ -321,8 +321,12 @@ final class Checker {
 
     var selected: CheckedScreen? { screens.first { $0.id == selectedScreen } }
 
+    /// A tap waits for the Simulator to be the window in front.
+    var waitingForSimulator = false
+
     init() {
         selection = apps.first.map { .app($0) }
+        Simulator.waiting = { [weak self] waiting in self?.waitingForSimulator = waiting }
     }
 
     /// The rules first, at once; then the model, which takes a few seconds, adds what only
@@ -434,6 +438,15 @@ final class Checker {
         test = Task { await test(old, count: count, people: people, select: true) }
     }
 
+    /// Whether a task is about something the app says out loud.
+    static func aboutSound(_ task: ScreenTask) -> Bool {
+        let words = (task.goal + " " + task.success).lowercased()
+        return ["hear", "listen", "pronounc", "sound", "audio", "spoken", "speak"].contains { words.contains($0) }
+    }
+
+    /// The people being tested now, while a test runs.
+    private(set) var testingPeople: [Persona] = []
+
     /// Several screens tested one after another, each opened in the Simulator in turn.
     private(set) var testQueue: (done: Int, total: Int)?
 
@@ -507,15 +520,37 @@ final class Checker {
     private func testPersonas(_ checked: CheckedScreen, count: Int, people: [Persona]) async {
         let id = checked.id
         testing = (id, "Working out what this screen is for…")
-        defer { testing = nil }
+        testingPeople = people
+        defer {
+            testing = nil
+            testingPeople = []
+        }
         do {
             let client = try ModelClient.fromEnvironment()
             let picture = try await Picture.take(device: checked.screen.device)
-            let (tasks, usage) = try await Personas.tasks(on: checked.screen, picture: picture, client: client)
-            let chosen = Array(tasks.prefix(count))
+            // Some of the people again: the same tasks as last time, and the others' results
+            // carried over, so all of them stay comparable.
+            // Only when the screen shows the same content: tasks name what is on it.
+            let earlier = people.count < Persona.people.filter(\.ready).count ? lastTest(of: checked).flatMap {
+                SavedTest.alike($0.screen.elements.map(\.label), checked.screen.elements.map(\.label)) ? $0 : nil
+            } : nil
+            var chosen: [ScreenTask], usage: ModelClient.Usage
+            if let earlier, let tasks = earlier.tasks, !tasks.isEmpty {
+                (chosen, usage) = (tasks, ModelClient.Usage())
+                // The deaf person needs a task about what the screen says out loud, if any.
+                if people.contains(.deaf), !tasks.contains(where: { Self.aboutSound($0) }) {
+                    let (fresh, used) = try await Personas.tasks(on: checked.screen, picture: picture, client: client)
+                    usage += used
+                    chosen = Array(fresh.filter(Self.aboutSound).prefix(1)) + chosen
+                }
+            } else {
+                let (tasks, used) = try await Personas.tasks(on: checked.screen, picture: picture, client: client)
+                (chosen, usage) = (Array(tasks.prefix(count)), used)
+            }
+            let kept = (earlier?.personaRuns ?? []).filter { $0.persona != .control && !people.contains($0.persona) && earlier?.run($0.persona, $0.task)?.id == $0.id }
             update(id) {
                 $0.tasks = chosen
-                $0.personaRuns = []
+                $0.personaRuns = kept
             }
             // The way back to this screen after each restart, learned on the first one.
             var route: [String] = []
@@ -541,7 +576,8 @@ final class Checker {
                             // The search only adds to the failure: when it cannot finish, the failure stands without it.
                             do {
                                 let (boundary, usage) = try await Personas.boundary(of: task, upTo: size) { size in
-                                    try await Personas.attempt(.control, task: task, at: size, start: checked.screen, picture: picture.jpeg, name: checked.title, route: &route, client: client)
+                                    testing = (id, "\(persona.title) got stuck. Is it the text size? Someone who sees well tries at \(size.title)…")
+                                    return try await Personas.attempt(.control, task: task, at: size, start: checked.screen, picture: picture.jpeg, name: checked.title, route: &route, client: client)
                                 }
                                 run.boundary = boundary
                                 run.usage += usage
@@ -590,7 +626,7 @@ final class Checker {
             return false
         }
         let way = route ?? checked.route ?? versions(of: checked).lazy.compactMap(\.route).first ?? []
-        guard let test = SavedTest(run, screen: checked.title, route: way) else {
+        guard let test = SavedTest(run, screen: checked.title, route: way, start: checked.screen) else {
             testProblem = "Nothing VoiceOver reads tells that this task is done, so it cannot be checked without a model."
             return false
         }
@@ -885,6 +921,7 @@ final class Checker {
 
     private static func failure(_ result: SavedTest.Result) -> String? {
         if case .failed(let why) = result { return why }
+        if case .unsure(let why) = result { return why }
         return nil
     }
 
@@ -922,7 +959,7 @@ final class Checker {
                 self?.keep(partial, in: id)
             }
             keep(run, in: id)
-            if persona != .control, let test = SavedTest(run, screen: start.title, route: route) {
+            if persona != .control, let test = SavedTest(run, screen: start.title, route: route, start: start.screen) {
                 tests.append(try test.save(in: project.folder).lastPathComponent)
             }
         }

@@ -66,9 +66,9 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Whether Allyfix can play this persona yet. A deaf persona needs the app's sound,
-    /// which the Simulator does not hand over yet.
-    var ready: Bool { self != .deaf }
+    /// Whether Allyfix can play this persona yet. All can: the deaf one is told when the
+    /// app played a sound, which Allyfix hears from the Simulator's audio.
+    var ready: Bool { true }
 
     /// Who the model is to be, in its own words.
     var role: String {
@@ -142,6 +142,8 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         /// Marks on text the app gives no element of its own, by mark number: where to touch,
         /// in iPhone points.
         var spots: [Int: CGPoint] = [:]
+        /// The same picture without the marks: what the person sees, for people to look at.
+        var plain: Data? = nil
     }
 
     /// The first number of marks put on text read off the screen, apart from element ids.
@@ -177,7 +179,7 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         return Perceived(text: """
             Numbered marks sit on things on the screen, whether they can be touched or not, each at \
             the top left of its thing; touch a thing by its mark. To touch something without a mark, give x and y in the \(Int(picture.size.width))×\(Int(picture.size.height)) pixel screenshot.
-            """, jpeg: Self.marked(seen, screen: screen, picture: picture, extra: extra), spots: spots)
+            """, jpeg: Self.marked(seen, screen: screen, picture: picture, extra: extra), spots: spots, plain: seen)
     }
 
     /// Marks numbered by element id on what is on the screen, so a seeing persona points at a

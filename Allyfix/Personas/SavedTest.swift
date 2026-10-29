@@ -17,6 +17,9 @@ struct SavedTest: Codable {
     enum Result {
         case passed
         case failed(String)
+        /// The screen shows other content than when the test was saved: it says nothing
+        /// about the barrier either way.
+        case unsure(String)
     }
 
     var task: String
@@ -28,10 +31,13 @@ struct SavedTest: Codable {
     var expect: [PersonaRun.Expectation]
     /// The text size the steps were taken at, when not the default.
     var textSize: TextSize?
+    /// What VoiceOver read on the screen when the test was saved, to tell a barrier coming
+    /// back from the screen simply showing something else.
+    var startLabels: [String]?
 
     /// The test a successful run makes; none when the run did not succeed or nothing in the
     /// accessibility tree tells that it did.
-    init?(_ run: PersonaRun, screen: String, route: [String]) {
+    init?(_ run: PersonaRun, screen: String, route: [String], start: Screen? = nil) {
         guard run.achieved == true, let expect = run.expect, !expect.isEmpty else { return nil }
         task = run.task.goal
         persona = run.persona
@@ -39,6 +45,7 @@ struct SavedTest: Codable {
         self.route = route
         self.expect = expect
         textSize = run.textSize
+        startLabels = start?.elements.map(\.label)
         steps = run.steps.compactMap { step in
             if let swipe = step.swipe, let point = step.point { return Step(touch: point, swipe: swipe) }
             if let label = step.label, run.persona != .dexterity { return Step(activate: label) }
@@ -73,6 +80,13 @@ struct SavedTest: Codable {
     }
 
     /// Runs the test again from a fresh start of the app. No model is asked anything.
+    /// Two readings of a screen show mostly the same things.
+    static func alike(_ a: [String], _ b: [String]) -> Bool {
+        let x = Set(a.filter { !$0.isEmpty }), y = Set(b.filter { !$0.isEmpty })
+        guard !x.isEmpty, !y.isEmpty else { return true }
+        return Double(x.intersection(y).count) / Double(x.union(y).count) >= 0.6
+    }
+
     func replay() async throws -> Result {
         try await TextSize.with(textSize) { try await replaySteps() }
     }
@@ -85,6 +99,9 @@ struct SavedTest: Codable {
             }
             _ = Simulator.press(element)
             try await Task.sleep(for: Personas.settle)
+        }
+        if let startLabels, !Self.alike(startLabels, try Simulator.screen().elements.map(\.label)) {
+            return .unsure("Can't tell: \(screen) shows other content than when the test was saved, so a step may not find what it needs. Restore the app's data, or save the test again.")
         }
         for step in steps {
             let screen = try Simulator.screen()

@@ -232,7 +232,7 @@ enum Compliance {
             "| Statement | Conformance | Remarks |",
             "|---|---|---|",
         ]
-        let statements: [(Persona, String)] = [(.screenReader, "4.2.1 Usage without vision"), (.lowVision, "4.2.2 Usage with limited vision"), (.colorVision, "4.2.3 Usage without perception of colour"), (.dexterity, "4.2.7 Usage with limited manipulation or strength"), (.cognitive, "4.2.10 Usage with limited cognition, language or learning")]
+        let statements: [(Persona, String)] = [(.screenReader, "4.2.1 Usage without vision"), (.lowVision, "4.2.2 Usage with limited vision"), (.colorVision, "4.2.3 Usage without perception of colour"), (.deaf, "4.2.4 Usage without hearing"), (.dexterity, "4.2.7 Usage with limited manipulation or strength"), (.cognitive, "4.2.10 Usage with limited cognition, language or learning")]
         for (persona, statement) in statements {
             let person = facts.people.first { $0.persona == persona }
             if let person, person.tried > 0 {
@@ -246,7 +246,7 @@ enum Compliance {
             }
         }
         lines += [
-            "| 4.2.4 / 4.2.5 Usage without or with limited hearing | \(Level.notEvaluated.rawValue) | Not tested yet. |",
+            "| 4.2.5 Usage with limited hearing | \(Level.notEvaluated.rawValue) | Not tested: the deaf person covers no hearing at all. |",
             "",
             "## Chapter 11: Software (WCAG 2.1 success criteria)",
             "",

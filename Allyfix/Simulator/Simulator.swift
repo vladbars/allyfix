@@ -5,6 +5,41 @@ import ApplicationServices
 /// Simulator hands the iPhone's own accessibility elements to it, so the app running
 /// there can be read and pressed without building or changing anything.
 enum Simulator {
+    /// Told when a tap waits for the Simulator to come to the front, and when it stops waiting.
+    static var waiting: ((Bool) -> Void)?
+
+    /// Turns on the Simulator's Window ▸ Stay On Top; true when it is on.
+    static func stayOnTop() -> Bool {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
+        var bar: AnyObject?
+        AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier), kAXMenuBarAttribute as CFString, &bar)
+        guard let bar, let item = menuItem("Stay On Top", in: bar as! AXUIElement, depth: 0) else { return false }
+        var mark: AnyObject?
+        AXUIElementCopyAttributeValue(item, "AXMenuItemMarkChar" as CFString, &mark)
+        if let mark = mark as? String, !mark.isEmpty { return true }
+        return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
+    }
+
+    private static func menuItem(_ title: String, in element: AXUIElement, depth: Int) -> AXUIElement? {
+        var value: AnyObject?
+        AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &value)
+        if value as? String == title { return element }
+        guard depth < 6 else { return nil }
+        var children: AnyObject?
+        AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &children)
+        for child in children as? [AXUIElement] ?? [] {
+            if let found = menuItem(title, in: child, depth: depth + 1) { return found }
+        }
+        return nil
+    }
+
+    /// Puts the Simulator in front, from Allyfix being in front: a click on Allyfix lets it.
+    static func bringForward() {
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return }
+        NSApplication.shared.yieldActivation(to: app)
+        app.activate()
+    }
+
     static let bundleID = "com.apple.iphonesimulator"
 
     enum Problem: LocalizedError {
@@ -133,6 +168,28 @@ enum Simulator {
             if owner(at: point) == app.processIdentifier { onTop = true; break }
             try await Task.sleep(for: .milliseconds(50))
         }
+        // Someone working in another app keeps the Simulator behind it, and macOS lets only
+        // the app in front give way. The Simulator's own Stay On Top keeps it above every
+        // app, so the tap lands without taking anyone's work away.
+        if !onTop, stayOnTop() {
+            for _ in 0..<20 {
+                if owner(at: point) == app.processIdentifier { onTop = true; break }
+                try await Task.sleep(for: .milliseconds(50))
+            }
+        }
+        // Still covered: ask, and wait, instead of giving up.
+        if !onTop {
+            waiting?(true)
+            // Allyfix may be behind the app being worked in: its Dock icon asks for a look.
+            let attention = NSApp.requestUserAttention(.criticalRequest)
+            defer { NSApp.cancelUserAttentionRequest(attention) }
+            defer { waiting?(false) }
+            for tick in 0..<240 {
+                if owner(at: point) == app.processIdentifier { onTop = true; break }
+                if tick % 4 == 0 { app.activate() }
+                try await Task.sleep(for: .milliseconds(500))
+            }
+        }
         guard onTop else { throw Problem.covered }
         let back = CGEvent(source: nil)?.location
         defer { if let back { CGWarpMouseCursorPosition(back) } }
@@ -154,7 +211,8 @@ enum Simulator {
         let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         // Allyfix's own highlight lies over the Simulator but lets clicks through.
         let passThrough = Set(NSApp.windows.filter(\.ignoresMouseEvents).map(\.windowNumber))
-        for window in windows where window[kCGWindowLayer as String] as? Int == 0 {
+        // Front to back, ordinary and floating windows: not the Dock, menus or overlays above.
+        for window in windows where (0..<20).contains(window[kCGWindowLayer as String] as? Int ?? -1) {
             if let number = window[kCGWindowNumber as String] as? Int, passThrough.contains(number) { continue }
             guard let bounds = window[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: bounds), rect.contains(point) else { continue }

@@ -10,6 +10,17 @@ struct ContentView: View {
                     .navigationSplitViewColumnWidth(min: 200, ideal: 230)
             } detail: {
                 VStack(spacing: 0) {
+                if checker.waitingForSimulator {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.tap.fill").foregroundStyle(.orange)
+                        Text("Waiting for the Simulator to be in front, so Allyfix can tap the app. Click its window; the test carries on by itself.")
+                        Spacer()
+                        Button("Bring It Forward") { Simulator.bringForward() }.buttonStyle(.borderedProminent)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Color.orange.opacity(0.15))
+                    Divider()
+                }
                 BusyBar(checker: checker)
                 switch checker.selection {
                 case .app(let app)?:

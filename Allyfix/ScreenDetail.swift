@@ -12,7 +12,12 @@ struct ScreenDetail: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            ScreenshotView(checked: checked, selected: $checker.selectedIssue, fixed: fixedFrames)
+            // A frame clicked on the screenshot shows its problem; Allyfix pointing at the worst
+            // problem on its own does not change what is shown.
+            ScreenshotView(checked: checked, selected: Binding(get: { checker.selectedIssue }, set: { id in
+                checker.selectedIssue = id
+                if id != nil { tab = .problems }
+            }), fixed: fixedFrames)
                 .padding(16)
                 .frame(width: 300)
             Divider()
@@ -46,8 +51,6 @@ struct ScreenDetail: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .onChange(of: checker.selectedIssue) { _, id in
-                    // A frame clicked on the screenshot opens the list at its problem.
-                    if id != nil { tab = .problems }
                     if let id { withAnimation { scroller.scrollTo(id, anchor: .center) } }
                 }
             }
@@ -131,6 +134,17 @@ struct ScreenDetail: View {
                         .buttonStyle(.bordered)
                         .disabled(checker.testing != nil || checker.exploring != nil || checker.fixing != nil)
                         .help("Six people with different disabilities try this screen's two main tasks, each from a fresh start of the app.")
+                }
+            }
+            if checker.testing?.screen == checked.id, checked.tasks != nil {
+                NowPanel(checker: checker, checked: checked)
+            }
+            if let tasks = (checked.tasks != nil ? checked : checker.lastTest(of: checked))?.tasks, !tasks.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("What people come to \(checked.title) to do").font(.callout.weight(.semibold))
+                    Text(tasks.enumerated().map { "\($0.offset + 1). \($0.element.goal)" }.joined(separator: "   "))
+                        .font(.callout).foregroundStyle(.secondary)
+                    Text("Worked out from what the screen shows; each screen has its own.").font(.caption).foregroundStyle(.tertiary)
                 }
             }
             PeopleGrid(checker: checker, checked: checked) { story = $0 }
@@ -426,11 +440,16 @@ struct Story: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(Array(run.steps.enumerated()), id: \.offset) { number, step in
                         HStack(alignment: .top, spacing: 14) {
-                            perceived(step)
+                            perceived(step, last: number == run.steps.count - 1)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Step \(number + 1)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                                 Text(step.thought).font(.callout)
-                                Text(action(step)).font(.callout.monospaced()).foregroundStyle(.secondary)
+                                if step.sound == true {
+                                    Label(run.persona == .deaf ? "The app played a sound: not heard" : "The app played a sound", systemImage: run.persona == .deaf ? "speaker.slash" : "speaker.wave.2")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Label(action(step), systemImage: step.action == "giveUp" ? "flag.fill" : step.action == "done" ? "checkmark" : "hand.tap")
+                                    .font(.callout.weight(.medium))
                             }
                         }
                     }
@@ -442,15 +461,22 @@ struct Story: View {
     }
 
     /// The screen as the person got it at that step: a picture, or what VoiceOver read.
-    @ViewBuilder private func perceived(_ step: PersonaRun.Step) -> some View {
-        if let jpeg = step.jpeg, let image = NSImage(data: jpeg) {
-            Image(nsImage: image).resizable().aspectRatio(contentMode: .fit).frame(width: 110).clipShape(RoundedRectangle(cornerRadius: 8))
+    /// The iPhone's screen in points, to place a touch on the picture.
+    private var screenSize: CGSize {
+        let screen = checker?.screens.first { $0.personaRuns?.contains { $0.id == run.id } == true }?.screen
+        return screen.map { CGSize(width: $0.frame.width / $0.scale, height: $0.frame.height / $0.scale) } ?? CGSize(width: 402, height: 874)
+    }
+
+    @ViewBuilder private func perceived(_ step: PersonaRun.Step, last: Bool) -> some View {
+        if let jpeg = step.jpeg {
+            StepShot(jpeg: step.plain ?? jpeg, marked: step.plain == nil, step: step, screen: screenSize, persona: run.persona,
+                     outcome: last ? run.achieved : nil)
         } else {
-            Text(step.perceived.split(separator: "\n").dropFirst().prefix(14).joined(separator: "\n"))
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.85))
-                .padding(6)
-                .frame(width: 110, height: 200, alignment: .topLeading)
+            Text(step.perceived.split(separator: "\n").dropFirst().prefix(20).joined(separator: "\n"))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(8)
+                .frame(width: 220, height: 400, alignment: .topLeading)
                 .clipped()
                 .background(RoundedRectangle(cornerRadius: 8).fill(.black))
         }
@@ -458,11 +484,12 @@ struct Story: View {
 
     private func action(_ step: PersonaRun.Step) -> String {
         switch step.action {
-        case "activate": "→ double-tap \(step.target?.withIconsNamed ?? "")"
-        case "touch": "→ touch \(step.target ?? "")"
-        case "giveUp": "→ gives up"
-        case "done": "→ says it is done"
-        default: "→ \(step.action)"
+        case "activate": "Double-tapped \(step.target?.withIconsNamed ?? "")"
+        case "touch": step.target.map { "Tapped where the ring is (\($0))" } ?? "Tapped"
+        case "swipe": "Swiped \(step.swipe ?? "") from the ring"
+        case "giveUp": "Gave up"
+        case "done": "Said it is done"
+        default: step.action
         }
     }
 }
@@ -763,5 +790,74 @@ private struct ChecksHistory: View {
 
     private func symbol(_ version: CheckedScreen) -> String {
         version.fix != nil ? "wand.and.stars" : version.fixOf != nil ? "checkmark.seal" : version.tasks != nil ? "person.3" : "eye"
+    }
+}
+
+/// What a person saw at a step, with where they touched marked by a ring, and a swipe by an
+/// arrow; click to see it big. The numbers are marks Allyfix puts on the picture so the
+/// person can point at things; they are not in the app.
+private struct StepShot: View {
+    let jpeg: Data
+    /// An older run kept only the picture with the marks on it.
+    let marked: Bool
+    let step: PersonaRun.Step
+    let screen: CGSize
+    let persona: Persona
+    /// On the last step: whether the task got done, to color the touch.
+    let outcome: Bool?
+    private var deaf: Bool { persona == .deaf }
+    @State private var big = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            shot.frame(width: 220)
+                .onTapGesture { big = true }
+                .help("Click to see it big")
+                .popover(isPresented: $big) { shot.frame(width: 460).padding(8) }
+            if marked { Text("Numbers: marks for pointing, not in the app").font(.caption2).foregroundStyle(.tertiary) }
+        }
+    }
+
+    @ViewBuilder private var shot: some View {
+        if let image = NSImage(data: jpeg) {
+            Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                .overlay {
+                    GeometryReader { box in
+                        if let point = step.point {
+                            let scale = CGPoint(x: box.size.width / screen.width, y: box.size.height / screen.height)
+                            let aim = CGPoint(x: point.x * scale.x, y: point.y * scale.y)
+                            // A tremor lands off the aim: where they aimed, dashed, and where the finger went.
+                            let miss = persona == .dexterity ? persona.tremor[(step.miss ?? 0) % persona.tremor.count] : .zero
+                            let at = CGPoint(x: (point.x + miss.x) * scale.x, y: (point.y + miss.y) * scale.y)
+                            let color: Color = outcome == true ? .green : outcome == false ? .red : .accentColor
+                            if miss != .zero {
+                                Circle().stroke(color, style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
+                                    .frame(width: 30, height: 30).position(aim)
+                                Path { path in path.move(to: aim); path.addLine(to: at) }.stroke(color, lineWidth: 2)
+                            }
+                            Circle().strokeBorder(color, lineWidth: 3)
+                                .background(Circle().fill(color.opacity(0.2)))
+                                .frame(width: 34, height: 34)
+                                .position(at)
+                            if let swipe = step.swipe {
+                                Image(systemName: "arrow.\(swipe)")
+                                    .font(.system(size: 26, weight: .bold)).foregroundStyle(.red)
+                                    .position(x: at.x + (swipe == "left" ? -36 : swipe == "right" ? 36 : 0), y: at.y + (swipe == "up" ? -36 : swipe == "down" ? 36 : 0))
+                            }
+                        }
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    if step.sound == true {
+                        Label(deaf ? "Sound, not heard" : "Sound", systemImage: deaf ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.caption.weight(.semibold)).foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Capsule().fill(deaf ? Color.red : Color.accentColor))
+                            .padding(8)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
+        }
     }
 }

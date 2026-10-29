@@ -49,7 +49,7 @@ enum Fixer {
             let with: String?
 
             /// It catches the barrier coming back, and holds while the fix is in.
-            var guards: Bool { without != nil && with == nil }
+            var guards: Bool { without != nil && without?.hasPrefix("Can't tell") != true && with == nil }
         }
 
         var files: Set<String> { Set(applied.map(\.path)) }

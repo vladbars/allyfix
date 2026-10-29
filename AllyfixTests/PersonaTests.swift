@@ -101,3 +101,15 @@ struct TextSizeTests {
         #expect(Persona.lowVision.textSize! > .extraExtraExtraLarge)
     }
 }
+
+struct SavedTestScreenTests {
+    @Test func otherContentIsNotABarrier() {
+        let today = ["Today", "All", "Saved", "A1", "3 of 20", "der Bahnhof, Learn again, I know it", "Cards, tab, 1 of 5", "Sets, tab, 2 of 5"]
+        var otherWord = today
+        otherWord[5] = "die Brücke, Learn again, I know it"
+        #expect(SavedTest.alike(today, otherWord))
+        #expect(!SavedTest.alike(today, ["Profile", "Lena", "Daily reminder", "Sign out"]))
+        #expect(Fixer.Run.Proof(test: "t", without: "Can't tell: other content", with: nil).guards == false)
+        #expect(Fixer.Run.Proof(test: "t", without: "\"Saved\" did not appear.", with: nil).guards)
+    }
+}

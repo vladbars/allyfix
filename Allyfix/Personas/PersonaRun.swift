@@ -26,6 +26,10 @@ struct PersonaRun: Codable, Identifiable {
         var miss: Int?
         /// A swipe from `point`: up, down, left or right.
         var swipe: String?
+        /// Whether the app played a sound after this step, as Allyfix heard it.
+        var sound: Bool?
+        /// What the person saw, without the marks put on it for pointing.
+        var plain: Data?
     }
 
     /// Something the accessibility tree shows once the task is done, or no longer shows.
@@ -296,11 +300,15 @@ enum Personas {
         let elements = screen.elements.map { "\($0.id). \(Audit.spoken($0).withIconsNamed)" }.joined(separator: "\n")
         let (answer, usage) = try await client.answer(TaskAnswer.self, schemaName: "tasks", schema: taskSchema, instructions: """
             You look at one screen of an iOS app and say what people come to this screen to \
-            do: two or three tasks, the most important first. Each goal is a short sentence a \
-            person would say, naming the very thing on this screen it is about ("Mark der \
-            Bahnhof as known", not "Mark this word as known"), so it stays clear after the screen \
-            changes. success says what would be visibly \
-            different on screen once the task is done, so someone looking can tell. Never a task \
+            do: two or three tasks, the most important first, each using a different part of \
+            the screen where there is one: the main content, its filters or switches, its \
+            smaller controls. Each goal is a short sentence a \
+            person would say, naming the very thing on this screen it is about, and for content \
+            that can change, also where it is ("Mark the word on the top card, der Bahnhof, as \
+            known"), so it stays clear after the screen changes. success says what would be visibly \
+            different on screen once the task is done, so someone looking can tell, or, for a task \
+            done by listening (hearing how a word sounds), which sound plays. If something on the \
+            screen plays sound, one task is to get what that sound tells. Never a task \
             that deletes, pays, sends, signs out or changes settings for good.
             """, input: [.jpeg(picture.jpeg), .text("Elements VoiceOver reads:\n" + elements)], maxTokens: 6000)
         return (Array(answer.tasks.prefix(3)), usage)
@@ -341,6 +349,12 @@ enum Personas {
             run.usage += usage
 
             var step = PersonaRun.Step(perceived: seen.text, thought: move.thought, action: move.action, target: nil, jpeg: seen.jpeg)
+            step.plain = seen.plain
+            // Allyfix listens to the Simulator through the action and after it: whether the
+            // app answered with a sound. A process that starts after the action, to play it,
+            // is heard by starting.
+            let audible = Set(Ear.simulatorProcesses())
+            let ear = Ear.start()
             switch move.action {
             case "activate":
                 guard let id = move.element, let element = screen.elements.first(where: { $0.id == id }) else { break }
@@ -353,18 +367,18 @@ enum Personas {
                 taps += 1
                 if let id = move.element, let spot = seen.spots[id] {
                     // Text with no element of its own: only a real touch reaches it.
-                    step = step.with(target: "mark \(id)", point: spot, miss: index)
+                    step = step.with(target: "mark \(id)", point: spot, miss: persona == .dexterity ? index : nil)
                     try await Simulator.touch(at: spot, miss: persona.tremor[index], on: screen)
                 } else if let id = move.element, let element = screen.elements.first(where: { $0.id == id }) {
                     let aim = CGPoint(x: element.pointFrame.midX, y: element.pointFrame.midY)
-                    step = step.with(target: "mark \(id)", label: persona == .dexterity ? nil : element.label, point: aim, miss: index)
+                    step = step.with(target: "mark \(id)", label: persona == .dexterity ? nil : element.label, point: aim, miss: persona == .dexterity ? index : nil)
                     if persona == .dexterity || !Simulator.press(element) {
                         try await Simulator.touch(at: aim, miss: persona.tremor[index], on: screen)
                     }
                 } else if let x = move.x, let y = move.y {
                     let mac = Review.toScreen(CGRect(x: x, y: y, width: 0, height: 0), screen: screen, picture: picture).origin
                     let aim = CGPoint(x: (mac.x - screen.frame.minX) / screen.scale, y: (mac.y - screen.frame.minY) / screen.scale)
-                    step = step.with(target: "(\(Int(x)), \(Int(y)))", point: aim, miss: index)
+                    step = step.with(target: "(\(Int(x)), \(Int(y)))", point: aim, miss: persona == .dexterity ? index : nil)
                     try await Simulator.touch(at: aim, miss: persona.tremor[index], on: screen)
                 }
             case "swipe":
@@ -395,6 +409,9 @@ enum Personas {
                 return run
             }
             try await Task.sleep(for: settle)
+            let sounded = (ear?.heardSomething() ?? false) || !Set(Ear.simulatorProcesses()).subtracting(audible).isEmpty
+            ear?.stop()
+            run.steps[run.steps.count - 1].sound = sounded
             (screen, picture) = try await look()
             // The judge looks after every step: a persona may not notice it is done, or
             // believe it is when it is not.
@@ -448,6 +465,12 @@ enum Personas {
                 lines.append("\(n + 1). \(step.action)\(step.target.map { " \($0)" } ?? "") — \(step.thought)")
             }
             lines.append("")
+            if run.steps.last?.sound == true {
+                lines.append(run.persona == .deaf
+                    ? "After your last action the phone played a sound. You are deaf: you noticed it only because something happened, not what it was."
+                    : "After your last action the phone played a sound, such as speech, and you heard it.")
+                lines.append("")
+            }
         }
         lines.append(perceived)
         return lines.joined(separator: "\n")
@@ -482,14 +505,15 @@ enum Personas {
 
     /// A sighted judge compares the screen before and after with what success looks like.
     static func judge(_ task: ScreenTask, before: Picture, after: Picture, run: PersonaRun, client: ModelClient) async throws -> (Verdict, ModelClient.Usage) {
-        let steps = run.steps.enumerated().map { "\($0.offset + 1). \($0.element.action)\($0.element.target.map { " \($0)" } ?? ""): \($0.element.thought)" }.joined(separator: "\n")
+        let steps = run.steps.enumerated().map { "\($0.offset + 1). \($0.element.action)\($0.element.target.map { " \($0)" } ?? "")\($0.element.sound == true ? " (the app played a sound)" : ""): \($0.element.thought)" }.joined(separator: "\n")
         let schema: [String: Any] = ["type": "object", "properties": ["achieved": ["type": "boolean"], "why": ["type": "string"]], "required": ["achieved", "why"], "additionalProperties": false]
         return try await client.answer(Verdict.self, schemaName: "verdict", schema: schema, instructions: """
             You judge an accessibility test. A person with a disability tried a task in an app. \
             You get the screen before and after, the task, what success looks like, and the \
             person's steps. Say whether the task was really done, judging by the screens, not by \
-            what the person believed. why: one or two plain sentences; when it was not done, say \
-            what in the app stopped them.
+            what the person believed. A sound the app played counts for someone who hears; for a \
+            deaf person only what the screen shows counts. why: one or two plain sentences; when \
+            it was not done, say what in the app stopped them.
             """, input: [.text("Before:"), .jpeg(before.jpeg), .text("After:"), .jpeg(after.jpeg), .text("Task: \(task.goal)\nSuccess looks like: \(task.success)\nPersona: \(run.persona.title)\n\nSteps:\n\(steps)")], maxTokens: 4000)
     }
 }
