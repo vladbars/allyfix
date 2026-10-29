@@ -76,7 +76,15 @@ extension Checker {
                 for label in Explorer.tries(on: start, tabs: tabs).prefix(Self.mostTries) where visited.count < Self.mostScreens {
                     try Task.checkCancellation()
                     if !Explorer.same(try Simulator.screen(), start) { try await Explorer.go(to: root, tabs: tabs) }
-                    guard let element = Navigator.find(label, in: try Simulator.screen()) else { continue }
+                    var element = Navigator.find(label, in: try Simulator.screen())
+                    if element == nil {
+                        // An earlier try changed the screen's state, like a switch from Topics to
+                        // Mine that hides the rows: from a fresh start the control is there again.
+                        exploring = (exploring?.app, "Starting again to try \(Explorer.words(label))…")
+                        try await Explorer.go(to: root, tabs: tabs, fresh: true)
+                        element = Navigator.find(label, in: try Simulator.screen())
+                    }
+                    guard let element else { continue }
                     exploring = (exploring?.app, "Trying \(Explorer.words(label))…")
                     _ = Simulator.press(element)
                     try await Explorer.settle()
@@ -149,8 +157,8 @@ enum Explorer {
     }
 
     /// Back to a main screen: its tab, or a fresh start of the app when that does not do it.
-    static func go(to route: [String], tabs: [String]) async throws {
-        if let tab = route.first, let element = Navigator.find(tab, in: try Simulator.screen()) {
+    static func go(to route: [String], tabs: [String], fresh: Bool = false) async throws {
+        if !fresh, let tab = route.first, let element = Navigator.find(tab, in: try Simulator.screen()) {
             _ = Simulator.press(element)
             try await settle()
             return

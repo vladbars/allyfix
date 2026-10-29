@@ -293,7 +293,7 @@ final class Checker {
     /// Saved tests run again, by file name: nil while running, then the result.
     var savedResults: [String: SavedTest.Result?] = [:]
     /// The latest run of the checks that need no model, per app: under way or done.
-    var checkRuns: [String: CheckRun] = [:]
+    var checkRuns: [String: CheckRun] = CheckRun.load()
     var checkTask: Task<Void, Never>?
     /// Apps whose code is watched: a change runs the checks again.
     var watching: Set<String> = Set(UserDefaults.standard.stringArray(forKey: "watching") ?? [])

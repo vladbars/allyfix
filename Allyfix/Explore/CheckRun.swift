@@ -3,8 +3,8 @@ import Foundation
 /// The checks that need no model, run again on an app: the way to every screen walked as
 /// it was found, then every saved test. Free and quick, so they can run whenever the code
 /// changes and say at once when a screen can no longer be reached or a barrier is back.
-struct CheckRun {
-    enum Outcome: Equatable {
+struct CheckRun: Codable {
+    enum Outcome: Equatable, Codable {
         case reached
         case lost(String)
     }
@@ -26,6 +26,17 @@ struct CheckRun {
     var lost: Int { screens.values.filter { $0 != .reached }.count }
     var failed: Int { tests.values.filter { $0 != nil }.count }
     var passed: Bool { finished && problem == nil && lost == 0 && failed == 0 }
+
+    /// The last finished run of each app, kept between launches.
+    static func load() -> [String: CheckRun] {
+        guard let data = UserDefaults.standard.data(forKey: "checkRuns") else { return [:] }
+        return (try? JSONDecoder().decode([String: CheckRun].self, from: data)) ?? [:]
+    }
+
+    static func save(_ runs: [String: CheckRun]) {
+        let finished = runs.filter(\.value.finished)
+        if let data = try? JSONEncoder().encode(finished) { UserDefaults.standard.set(data, forKey: "checkRuns") }
+    }
 }
 
 extension Checker {
@@ -70,6 +81,7 @@ extension Checker {
             checkRuns[app]?.testing = nil
             checkRuns[app]?.finished = true
             checkRuns[app]?.took = Date().timeIntervalSince(checkRuns[app]?.date ?? Date())
+            CheckRun.save(checkRuns)
             codeStamps[app] = codeStamp(of: app)
         }
     }

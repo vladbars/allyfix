@@ -10,6 +10,8 @@ struct SavedTest: Codable {
         /// Or touch this point, in iPhone points, off by this miss of the persona's tremor.
         var touch: CGPoint?
         var miss: Int?
+        /// Or swipe from `touch` this way.
+        var swipe: String?
     }
 
     enum Result {
@@ -38,6 +40,7 @@ struct SavedTest: Codable {
         self.expect = expect
         textSize = run.textSize
         steps = run.steps.compactMap { step in
+            if let swipe = step.swipe, let point = step.point { return Step(touch: point, swipe: swipe) }
             if let label = step.label, run.persona != .dexterity { return Step(activate: label) }
             if let point = step.point { return Step(touch: point, miss: step.miss) }
             return nil
@@ -90,6 +93,8 @@ struct SavedTest: Codable {
                     return .failed("\(persona.title) cannot reach \"\(label.withIconsNamed)\": it is not there any more.")
                 }
                 _ = Simulator.press(element)
+            } else if let swipe = step.swipe, let point = step.touch {
+                try await Simulator.swipe(swipe, from: point, on: screen)
             } else if let point = step.touch {
                 let miss = persona.tremor[(step.miss ?? 0) % persona.tremor.count]
                 try await Simulator.touch(at: point, miss: miss, on: screen)

@@ -65,6 +65,53 @@ enum Simulator {
     /// card. The click happens only once the Simulator's window is the one on top at that
     /// point, so it can never land in another app.
     static func touch(_ point: CGPoint) async throws {
+        try await inFront(at: point) {
+            let source = CGEventSource(stateID: .hidSystemState)
+            for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+                CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
+                try await Task.sleep(for: .milliseconds(60))
+            }
+        }
+    }
+
+    /// Drags a finger across the iPhone's screen, from one point to another on the Mac's
+    /// screen: a swipe, or a scroll when it goes up or down.
+    static func drag(from start: CGPoint, to end: CGPoint) async throws {
+        try await inFront(at: start) {
+            let source = CGEventSource(stateID: .hidSystemState)
+            CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: start, mouseButton: .left)?.post(tap: .cghidEventTap)
+            let steps = 14
+            for step in 1...steps {
+                let t = CGFloat(step) / CGFloat(steps)
+                let point = CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t)
+                try await Task.sleep(for: .milliseconds(16))
+                CGEvent(mouseEventSource: source, mouseType: .leftMouseDragged, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
+            }
+            try await Task.sleep(for: .milliseconds(40))
+            CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: end, mouseButton: .left)?.post(tap: .cghidEventTap)
+        }
+    }
+
+    /// A swipe from a point given in the iPhone's own points: "up" moves the content up to
+    /// show what is below, "left" moves it left to show what is to the right.
+    static func swipe(_ direction: String, from point: CGPoint, on screen: Screen) async throws {
+        let width = screen.frame.width / screen.scale, height = screen.frame.height / screen.scale
+        let start = CGPoint(x: min(max(point.x, width * 0.15), width * 0.85), y: min(max(point.y, height * 0.2), height * 0.8))
+        var end = start
+        switch direction {
+        case "up": end.y -= height * 0.4
+        case "down": end.y += height * 0.4
+        case "left": end.x -= width * 0.6
+        default: end.x += width * 0.6
+        }
+        end = CGPoint(x: min(max(end.x, 4), width - 4), y: min(max(end.y, height * 0.08), height * 0.92))
+        let mac = { (p: CGPoint) in CGPoint(x: screen.frame.minX + p.x * screen.scale, y: screen.frame.minY + p.y * screen.scale) }
+        try await drag(from: mac(start), to: mac(end))
+    }
+
+    /// Does something with the mouse once the Simulator is the window on top at a point, so it
+    /// can never land in another app; puts the pointer and the app in front back after.
+    private static func inFront(at point: CGPoint, _ act: () async throws -> Void) async throws {
         guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { throw Problem.notRunning }
         // Not in the middle of someone's typing or clicking elsewhere: wait for a pause.
         for _ in 0..<40 where idleSeconds < 1.2 {
@@ -88,12 +135,8 @@ enum Simulator {
         }
         guard onTop else { throw Problem.covered }
         let back = CGEvent(source: nil)?.location
-        let source = CGEventSource(stateID: .hidSystemState)
-        for type in [CGEventType.leftMouseDown, .leftMouseUp] {
-            CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
-            try await Task.sleep(for: .milliseconds(60))
-        }
-        if let back { CGWarpMouseCursorPosition(back) }
+        defer { if let back { CGWarpMouseCursorPosition(back) } }
+        try await act()
     }
 
     /// How long since the last key press, click or mouse move on this Mac.

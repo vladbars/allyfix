@@ -24,6 +24,8 @@ struct PersonaRun: Codable, Identifiable {
         var label: String?
         var point: CGPoint?
         var miss: Int?
+        /// A swipe from `point`: up, down, left or right.
+        var swipe: String?
     }
 
     /// Something the accessibility tree shows once the task is done, or no longer shows.
@@ -313,11 +315,13 @@ enum Personas {
 
     struct Move: Decodable {
         let thought: String
-        /// activate, touch, done or giveUp.
+        /// activate, touch, swipe, done or giveUp.
         let action: String
         let element: Int?
         let x: Double?
         let y: Double?
+        /// For a swipe: up shows what is below, down what is above, left and right slide.
+        let direction: String?
     }
 
     /// One persona tries one task from the screen the Simulator shows now.
@@ -363,6 +367,22 @@ enum Personas {
                     step = step.with(target: "(\(Int(x)), \(Int(y)))", point: aim, miss: index)
                     try await Simulator.touch(at: aim, miss: persona.tremor[index], on: screen)
                 }
+            case "swipe":
+                // From a mark, a point, or the middle of the screen.
+                let width = screen.frame.width / screen.scale, height = screen.frame.height / screen.scale
+                var from = CGPoint(x: width / 2, y: height / 2)
+                if let id = move.element, let spot = seen.spots[id] {
+                    from = spot
+                } else if let id = move.element, let element = screen.elements.first(where: { $0.id == id }) {
+                    from = CGPoint(x: element.pointFrame.midX, y: element.pointFrame.midY)
+                } else if let x = move.x, let y = move.y {
+                    let mac = Review.toScreen(CGRect(x: x, y: y, width: 0, height: 0), screen: screen, picture: picture).origin
+                    from = CGPoint(x: (mac.x - screen.frame.minX) / screen.scale, y: (mac.y - screen.frame.minY) / screen.scale)
+                }
+                let direction = ["up", "down", "left", "right"].contains(move.direction ?? "") ? move.direction! : "up"
+                step = step.with(target: "\(direction)\(move.element.map { " from mark \($0)" } ?? "")", point: from)
+                step.swipe = direction
+                try await Simulator.swipe(direction, from: from, on: screen)
             default:
                 break
             }
@@ -408,7 +428,7 @@ enum Personas {
 
     static func instructions(for persona: Persona) -> String {
         let acting = persona.sees
-            ? "Each step, do one thing: touch something you see, say done when you believe the task is complete, or giveUp when you cannot see how to do it. To touch something, give in element the number of the mark that sits on it or just above it, even if you cannot make out what it says; give x and y only when no mark is on or next to it."
+            ? "Each step, do one thing: touch something you see, swipe, say done when you believe the task is complete, or giveUp when you cannot see how to do it. To touch something, give in element the number of the mark that sits on it or just above it, even if you cannot make out what it says; give x and y only when no mark is on or next to it. Swipe to scroll or to slide things: direction up shows what is further down the screen, down what is above, left and right slide cards or pages; start it on a mark, or give nothing to start in the middle. The screen may go on below what you see."
             : "Each step, do one thing: activate an element by its number (you swipe to it and double-tap), say done when you believe the task is complete, or giveUp when what you hear does not let you do it."
         return """
         \(persona.role)
@@ -436,7 +456,8 @@ enum Personas {
     static func moveSchema(for persona: Persona) -> [String: Any] {
         let nullableInteger: [String: Any] = ["anyOf": [["type": "integer"], ["type": "null"]]]
         let nullableNumber: [String: Any] = ["anyOf": [["type": "number"], ["type": "null"]]]
-        let actions = persona.sees ? ["touch", "done", "giveUp"] : ["activate", "done", "giveUp"]
+        let actions = persona.sees ? ["touch", "swipe", "done", "giveUp"] : ["activate", "done", "giveUp"]
+        let direction: [String: Any] = ["anyOf": [["type": "string", "enum": ["up", "down", "left", "right"]], ["type": "null"]]]
         return [
             "type": "object",
             "properties": [
@@ -445,8 +466,9 @@ enum Personas {
                 "element": nullableInteger,
                 "x": nullableNumber,
                 "y": nullableNumber,
+                "direction": direction,
             ],
-            "required": ["thought", "action", "element", "x", "y"],
+            "required": ["thought", "action", "element", "x", "y", "direction"],
             "additionalProperties": false,
         ]
     }

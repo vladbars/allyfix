@@ -34,10 +34,10 @@ struct PersonaTests {
         #expect(!seen.text.contains("\u{E8F4}") && !seen.text.contains("<icon>"))
     }
 
-    @Test func seeingPersonasTouchAndScreenReaderUsersActivate() {
+    @Test func seeingPersonasTouchAndSwipeAndScreenReaderUsersActivate() {
         let actions = { (persona: Persona) in ((Personas.moveSchema(for: persona)["properties"] as? [String: Any])?["action"] as? [String: Any])?["enum"] as? [String] }
         #expect(actions(.screenReader) == ["activate", "done", "giveUp"])
-        #expect(actions(.colorVision) == ["touch", "done", "giveUp"])
+        #expect(actions(.colorVision) == ["touch", "swipe", "done", "giveUp"])
     }
 
     @Test func theSameHandMissesTheSameWayEveryRunAndTheControlIsApart() {

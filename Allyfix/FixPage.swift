@@ -51,6 +51,17 @@ struct FixPage: View {
                 if let problem = checker.fixProblem, !running { Label(problem, systemImage: "exclamationmark.triangle").foregroundStyle(.orange) }
                 if run != nil, !running { decision }
                 if run != nil { screens }
+                if let run {
+                    let others = checker.screens.filter { $0.id != before.id && $0.fix?.branch == run.branch }
+                    if !others.isEmpty {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Other screens in this fix · \(others.count)").font(.title3.weight(.semibold))
+                            ForEach(others) { other in
+                                ScreenChange(checker: checker, before: other)
+                            }
+                        }
+                    }
+                }
                 people
                 if let run { tests(run) }
                 if let run, let keys = run.fixed, !keys.isEmpty {
@@ -407,6 +418,42 @@ private struct Shot: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+        }
+    }
+}
+
+/// One more screen a fix changed: before and after, the change framed, and what is gone.
+private struct ScreenChange: View {
+    let checker: Checker
+    let before: CheckedScreen
+
+    var body: some View {
+        let after = before.fix?.after.flatMap { id in checker.screens.first { $0.id == id } }
+        let changes = before.jpeg.flatMap { a in after?.jpeg.map { Difference.regions(a, $0) } } ?? []
+        let keys = before.fix?.fixed?.filter { $0.hasPrefix("\(before.id)/") } ?? []
+        HStack(alignment: .top, spacing: 16) {
+            Shot(jpeg: before.jpeg, places: changes, color: .orange).frame(width: 150)
+            Image(systemName: "arrow.right").foregroundStyle(.tertiary).padding(.top, 120)
+            if let after {
+                Shot(jpeg: after.jpeg, places: changes, color: .green).frame(width: 150)
+            } else {
+                RoundedRectangle(cornerRadius: 12).fill(.quaternary).frame(width: 150, height: 320)
+                    .overlay { Text("Not checked yet").font(.caption).foregroundStyle(.secondary) }
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Button(before.title) { checker.selectedScreen = checker.latest(of: before).id }
+                    .buttonStyle(.link).font(.headline)
+                if let after, !after.reviewing {
+                    let gone = Checker.gone(keys, before: before, after: after)
+                    Label("\(gone) of \(keys.count) problems gone", systemImage: gone == keys.count ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(gone == keys.count ? .green : .orange)
+                } else if after?.reviewing == true {
+                    Text("Checking…").foregroundStyle(.secondary)
+                }
+                Text(changes.isEmpty ? "Looks the same; the change is in what VoiceOver reads." : "Framed: what looks different.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
         }
     }
 }

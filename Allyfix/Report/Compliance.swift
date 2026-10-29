@@ -36,9 +36,9 @@ enum Compliance {
     /// findings. 2.5.8 comes from WCAG 2.2 and is reported apart.
     static let examined: Set<String> = ["1.1.1", "1.3.1", "1.3.2", "2.4.3", "2.5.3", "3.1.2", "4.1.2"]
 
-    /// The German market surveillance authority for the BFSG; its address is to be checked,
-    /// as published sources disagree.
-    static let authority = "Marktüberwachungsstelle der Länder für die Barrierefreiheit von Produkten und Dienstleistungen (MLBF AöR), Magdeburg, www.mlbf-barrierefrei.de"
+    /// The German market surveillance authority for the BFSG, with the address most sources
+    /// give; older pages still name a post box at the Saxony-Anhalt ministry.
+    static let authority = "Marktüberwachungsstelle der Länder für die Barrierefreiheit von Produkten und Dienstleistungen (MLBF AöR), Carl-Miller-Straße 6, 39112 Magdeburg, kontakt@mlbf-barrierefrei.de, www.mlbf-barrierefrei.de"
 
     struct Finding {
         let screen: String
@@ -175,7 +175,7 @@ enum Compliance {
             "",
             "## d) Zuständige Marktüberwachungsbehörde",
             "",
-            authority + " [Anschrift auf der Website prüfen].",
+            authority + " [Vor der Veröffentlichung auf www.mlbf-barrierefrei.de prüfen.]",
             "",
         ]
         return lines.joined(separator: "\n")
