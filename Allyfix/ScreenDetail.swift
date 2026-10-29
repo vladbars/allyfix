@@ -130,8 +130,9 @@ struct ScreenDetail: View {
                     Text(testing.step).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                     Button("Stop", action: checker.stopTesting)
                 } else {
-                    Button(action: { checker.testPersonas() }) { Label(checked.tasks == nil && earlier == nil ? "Test People" : "Test Again", systemImage: "person.3") }
-                        .buttonStyle(.bordered)
+                    Button(action: { checker.testPersonas() }) { Label(checked.tasks == nil && earlier == nil ? "Test People" : "Test Everyone Again", systemImage: "person.3.fill") }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
                         .disabled(checker.testing != nil || checker.exploring != nil || checker.fixing != nil)
                         .help("Six people with different disabilities try this screen's two main tasks, each from a fresh start of the app.")
                 }
@@ -140,11 +141,21 @@ struct ScreenDetail: View {
                 NowPanel(checker: checker, checked: checked)
             }
             if let tasks = (checked.tasks != nil ? checked : checker.lastTest(of: checked))?.tasks, !tasks.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("What people come to \(checked.title) to do").font(.callout.weight(.semibold))
-                    Text(tasks.enumerated().map { "\($0.offset + 1). \($0.element.goal)" }.joined(separator: "   "))
-                        .font(.callout).foregroundStyle(.secondary)
-                    Text("Worked out from what the screen shows; each screen has its own.").font(.caption).foregroundStyle(.tertiary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Tasks on \(checked.title)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        .help("Worked out from what the screen shows; each screen has its own")
+                    HStack(spacing: 8) {
+                        ForEach(Array(tasks.enumerated()), id: \.offset) { number, task in
+                            HStack(spacing: 6) {
+                                Text("\(number + 1)").font(.caption.weight(.bold)).foregroundStyle(.white)
+                                    .frame(width: 18, height: 18).background(Circle().fill(Color.accentColor))
+                                Text(task.goal).font(.callout.weight(.medium)).lineLimit(1)
+                            }
+                            .padding(.leading, 4).padding(.trailing, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(Color.accentColor.opacity(0.12)))
+                            .help(task.success)
+                        }
+                    }
                 }
             }
             PeopleGrid(checker: checker, checked: checked) { story = $0 }

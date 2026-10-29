@@ -194,7 +194,7 @@ struct ScreensTable: View {
             ForEach(people) { person in
                 let stuck = rows.flatMap { stuckRuns(person, on: $0) }.count
                 VStack(spacing: 2) {
-                    Image(systemName: person.symbol).font(.system(size: 15, weight: .medium)).foregroundStyle(.tint)
+                    Image(systemName: person.symbol).font(.system(size: 15, weight: .semibold)).foregroundStyle(person.color)
                     Text(stuck > 0 ? "\(stuck) stuck" : " ").font(.caption2.weight(.semibold)).foregroundStyle(.red)
                 }
                 .frame(width: 58)

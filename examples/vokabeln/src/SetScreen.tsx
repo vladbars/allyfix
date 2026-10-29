@@ -24,7 +24,7 @@ export function SetScreen({ set, onBack }: { set: WordSet; onBack: () => void })
 
         {set.locked ? (
           <View style={styles.plus}>
-            <Ionicons name="sparkles" size={18} color={colors.ochre} />
+            <Ionicons name="sparkles" size={18} color={colors.highlight} />
             <View style={styles.plusText}>
               <Text style={styles.plusTitle}>{set.words} words with Plus</Text>
               <Text style={styles.plusDetail}>Every set, offline cards and photo sets.</Text>
@@ -44,9 +44,31 @@ export function SetScreen({ set, onBack }: { set: WordSet; onBack: () => void })
               <View style={[styles.fill, { width: `${(set.seen / set.words) * 100}%` }]} />
             </View>
             <Pressable style={styles.study} onPress={() => Alert.alert(set.title, `Next ${Math.min(10, left)} words`)}>
-              <Ionicons name="play" size={17} color={colors.card} />
+              <Ionicons name="play" size={17} color={colors.onAccent} />
               <Text style={styles.studyText}>Study {Math.min(10, left)} words</Text>
             </Pressable>
+          </>
+        )}
+
+        {set.locked && set.preview && (
+          <>
+            <Text style={styles.section}>In this set</Text>
+            {set.preview.map((item) => (
+              <View key={item.word} style={styles.word}>
+                <View style={[styles.initial, { backgroundColor: articleColors[item.article] }]}>
+                  <Text style={styles.initialText}>{item.article}</Text>
+                </View>
+                <View style={styles.wordText}>
+                  <Text style={styles.wordTitle}>
+                    <Text style={{ color: articleColors[item.article] }}>{item.article} </Text>
+                    {item.word}
+                  </Text>
+                  <Text style={styles.meaning}>{item.meaning}</Text>
+                </View>
+                <Ionicons name="lock-closed" size={16} color={colors.muted} />
+              </View>
+            ))}
+            <Text style={styles.more}>and {set.words - set.preview.length} more with Plus</Text>
           </>
         )}
 
@@ -97,9 +119,9 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 30 },
   hero: { height: 250 },
   art: { width: '100%', height: '100%' },
-  back: { position: 'absolute', top: 12, left: 16, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,252,246,0.92)', ...shadow },
+  back: { position: 'absolute', top: 12, left: 16, width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.glass, ...shadow },
   body: { marginTop: -28, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: colors.background, padding: 20, gap: 10 },
-  levels: { fontFamily: fonts.bold, fontSize: 12, color: colors.terracotta, textTransform: 'uppercase', letterSpacing: 1 },
+  levels: { fontFamily: fonts.bold, fontSize: 12, color: colors.signal, textTransform: 'uppercase', letterSpacing: 1 },
   title: { fontFamily: fonts.display, fontSize: 32, color: colors.ink },
   description: { fontFamily: fonts.text, fontSize: 15, lineHeight: 21, color: colors.muted },
   stats: { flexDirection: 'row', gap: 10, marginTop: 6 },
@@ -109,16 +131,18 @@ const styles = StyleSheet.create({
   track: { height: 6, borderRadius: 3, backgroundColor: colors.faint, overflow: 'hidden', marginTop: 4 },
   fill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
   study: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 52, borderRadius: 26, backgroundColor: colors.accent, marginTop: 6 },
-  studyText: { fontFamily: fonts.bold, fontSize: 16, color: colors.card },
-  plus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: '#F6E7CB', marginTop: 6 },
+  studyText: { fontFamily: fonts.bold, fontSize: 16, color: colors.onAccent },
+  plus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: colors.plusSoft, marginTop: 6 },
   plusText: { flex: 1, gap: 2 },
   plusTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
   plusDetail: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },
   plusButton: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 16, backgroundColor: colors.ink },
-  plusButtonText: { fontFamily: fonts.bold, fontSize: 13, color: colors.card },
+  plusButtonText: { fontFamily: fonts.bold, fontSize: 13, color: colors.onAccent },
   section: { fontFamily: fonts.displayMedium, fontSize: 20, color: colors.ink, marginTop: 14 },
   word: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 18, backgroundColor: colors.card },
   thumb: { width: 54, height: 54, borderRadius: 12 },
+  initial: { width: 54, height: 54, borderRadius: 12, alignItems: 'center', justifyContent: 'center', opacity: 0.9 },
+  initialText: { fontFamily: fonts.display, fontSize: 18, color: colors.onAccent },
   wordText: { flex: 1, gap: 2 },
   wordTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   meaning: { fontFamily: fonts.text, fontSize: 13, color: colors.muted },

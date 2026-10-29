@@ -1,6 +1,5 @@
 import { Fraunces_500Medium, Fraunces_600SemiBold } from '@expo-google-fonts/fraunces';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from '@expo-google-fonts/inter';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
@@ -25,7 +24,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <LinearGradient colors={[colors.background, colors.backgroundDeep]} style={styles.app}>
+      <View style={styles.app}>
         <SafeAreaView style={styles.app} edges={['top']}>
           <View style={styles.content}>
             {tab === 'Cards' && <CardsScreen />}
@@ -36,8 +35,8 @@ export default function App() {
           </View>
           <TabBar current={tab} onChange={setTab} />
         </SafeAreaView>
-        <StatusBar style="dark" />
-      </LinearGradient>
+        <StatusBar style="auto" />
+      </View>
     </SafeAreaProvider>
   );
 }

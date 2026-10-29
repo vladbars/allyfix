@@ -18,7 +18,7 @@ export function TabBar({ current, onChange }: { current: Tab; onChange: (tab: Ta
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom - 8, 8) }]}>
-      <BlurView intensity={40} tint="light" style={styles.bar}>
+      <BlurView intensity={40} tint="systemChromeMaterial" style={styles.bar}>
         <View style={styles.row}>
           {tabs.map((tab, i) => {
             const on = current === tab.name;
@@ -35,7 +35,7 @@ export function TabBar({ current, onChange }: { current: Tab; onChange: (tab: Ta
                 <View style={styles.icon}>
                   {tab.name === 'AddCard' ? (
                     <View style={styles.add}>
-                      <Ionicons name="add" size={28} color="#fff" />
+                      <Ionicons name="add" size={28} color={colors.onAccent} />
                     </View>
                   ) : (
                     <Ionicons name={on ? tab.active : tab.icon} size={25} color={on ? colors.accent : colors.muted} />
@@ -52,11 +52,11 @@ export function TabBar({ current, onChange }: { current: Tab; onChange: (tab: Ta
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 16, paddingTop: 6 },
-  bar: { height: 66, borderRadius: 26, overflow: 'hidden', backgroundColor: 'rgba(255,252,246,0.75)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)', ...shadow },
+  bar: { height: 66, borderRadius: 26, overflow: 'hidden', backgroundColor: colors.glass, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', ...shadow },
   row: { flexDirection: 'row', paddingHorizontal: 6 },
   tab: { flex: 1, height: 10, alignItems: 'center', overflow: 'visible' },
   dot: { width: 5, height: 5, borderRadius: 3, marginTop: 5, backgroundColor: 'transparent' },
   dotOn: { backgroundColor: colors.accent },
   icon: { position: 'absolute', top: 14, height: 40, justifyContent: 'center' },
-  add: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.terracotta, alignItems: 'center', justifyContent: 'center', marginTop: -2 },
+  add: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginTop: -2 },
 });

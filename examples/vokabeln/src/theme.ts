@@ -1,21 +1,37 @@
+import { DynamicColorIOS, Platform } from 'react-native';
+
+/**
+ * A color for the light look and one for the dark; iOS switches with the system. Typed as a
+ * string because every color prop takes it, icons included, though the value is native.
+ */
+const both = (light: string, dark: string) => (Platform.OS === 'ios' ? (DynamicColorIOS({ light, dark }) as unknown as string) : light);
+
+/**
+ * Quiet and editorial in both looks: the photos carry the color. The main action is a pill of
+ * ink on paper, or of paper on ink, and one warm metal marks what is precious.
+ */
 export const colors = {
-  background: '#F6F0E6',
-  backgroundDeep: '#EDE3D3',
-  card: '#FFFCF6',
-  paper: '#F4EADA',
-  ink: '#2B2521',
-  muted: '#8E8378',
-  faint: '#E7DDCE',
-  accent: '#3F6F5E',
-  accentSoft: '#DCE8E0',
-  terracotta: '#C46A43',
-  ochre: '#D99A3E',
+  background: both('#F6F5F2', '#0E0E10'),
+  card: both('#FFFFFF', '#1A1A1D'),
+  paper: both('#EEEDEA', '#242428'),
+  ink: both('#141416', '#F3F1EC'),
+  muted: both('#6F6D69', '#8F8D88'),
+  faint: both('#E3E1DC', '#2E2E33'),
+  accent: both('#141416', '#F3F1EC'),
+  onAccent: both('#FFFFFF', '#121214'),
+  accentSoft: both('#ECEBE8', '#26262A'),
+  signal: both('#A6762A', '#D9B26A'),
+  highlight: both('#A6762A', '#D9B26A'),
+  glass: both('rgba(255,255,255,0.82)', 'rgba(18,18,20,0.72)'),
+  plusSoft: both('#F4EBD8', '#2A2519'),
+  signalSoft: both('#F4EBD8', '#2A2519'),
 };
 
+/** der, die, das in the colors learners know them by, deep on paper and soft on ink. */
 export const articleColors = {
-  der: '#3E66A0',
-  die: '#B9483F',
-  das: '#3F8456',
+  der: both('#2E5BC9', '#8FB4FF'),
+  die: both('#C8433A', '#FF9C8F'),
+  das: both('#2E8B57', '#86D9A8'),
 };
 
 export const fonts = {
@@ -27,8 +43,8 @@ export const fonts = {
 };
 
 export const shadow = {
-  shadowColor: '#5A4632',
-  shadowOpacity: 0.12,
+  shadowColor: '#000000',
+  shadowOpacity: 0.08,
   shadowRadius: 18,
   shadowOffset: { width: 0, height: 8 },
 };

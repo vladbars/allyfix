@@ -37,7 +37,7 @@ export function CardsScreen() {
           <Text style={styles.title}>Today</Text>
         </View>
         <View style={styles.streak}>
-          <Ionicons name="flame" size={16} color={colors.terracotta} />
+          <Ionicons name="flame" size={16} color={colors.signal} />
           <Text style={styles.streakText}>12</Text>
         </View>
       </View>
@@ -137,7 +137,7 @@ function TopCard({ word, onAnswer, saved, onToggleSaved }: { word: Word; onAnswe
             <Text style={styles.answerText}>Learn again</Text>
           </Pressable>
           <Pressable style={({ pressed }) => [styles.answer, styles.know, pressed && styles.pressed]} onPress={() => answer(true)}>
-            <Text style={styles.answerText}>I know it</Text>
+            <Text style={[styles.answerText, styles.knowText]}>I know it</Text>
           </Pressable>
         </View>
       </Pressable>
@@ -155,7 +155,7 @@ function CardFace({ word, onFlip, saved, onToggleSaved }: { word: Word; onFlip?:
         <Image source={word.image} style={styles.art} />
         <Text style={styles.level}>{word.level}</Text>
         <Pressable onPress={onToggleSaved} style={[styles.bookmark, saved && styles.bookmarkOn]} accessibilityRole="button" accessibilityLabel={saved ? `Saved, ${word.word}` : `Save ${word.word}`} accessibilityState={{ selected: saved }}>
-          <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={24} color={saved ? '#fff' : colors.ink} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+          <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={24} color={saved ? colors.onAccent : colors.ink} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
           <Text style={[styles.bookmarkText, saved && styles.bookmarkTextOn]}>{saved ? 'Saved' : 'Save'}</Text>
         </Pressable>
       </View>
@@ -185,7 +185,7 @@ function CardFace({ word, onFlip, saved, onToggleSaved }: { word: Word; onFlip?:
           <Ionicons name="sync-outline" size={22} color={colors.accent} />
         </Pressable>
         <Pressable style={[styles.tool, quiz && styles.toolOn]} accessibilityRole="switch" accessibilityState={{ checked: quiz }} onPress={() => setQuiz(!quiz)}>
-          <Ionicons name={quiz ? 'eye-off-outline' : 'eye-outline'} size={22} color={quiz ? '#fff' : colors.accent} />
+          <Ionicons name={quiz ? 'eye-off-outline' : 'eye-outline'} size={22} color={quiz ? colors.onAccent : colors.accent} />
         </Pressable>
       </View>
     </View>
@@ -213,10 +213,10 @@ const styles = StyleSheet.create({
   streak: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.card, ...shadow, shadowOpacity: 0.06 },
   streakText: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
   filters: { flexDirection: 'row', gap: 6, marginTop: 14 },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, backgroundColor: 'rgba(255,252,246,0.7)', borderWidth: 1, borderColor: colors.faint },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.faint },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   chipText: { fontFamily: fonts.medium, fontSize: 13, color: colors.muted },
-  chipTextOn: { color: colors.card },
+  chipTextOn: { color: colors.onAccent },
   progress: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, marginBottom: 14 },
   track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: colors.faint, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
@@ -231,11 +231,11 @@ const styles = StyleSheet.create({
   face: { flex: 1, padding: 14 },
   artFrame: { height: 200, borderRadius: 20, overflow: 'hidden', backgroundColor: colors.paper },
   art: { width: '100%', height: '100%', resizeMode: 'cover' },
-  level: { position: 'absolute', top: 10, left: 10, fontFamily: fonts.bold, fontSize: 12, color: colors.accent, backgroundColor: 'rgba(255,252,246,0.9)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, overflow: 'hidden' },
-  bookmark: { position: 'absolute', top: 8, right: 8, minWidth: 92, height: 48, paddingHorizontal: 12, borderRadius: 24, backgroundColor: 'rgba(255,252,246,0.95)', flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
-  bookmarkOn: { backgroundColor: colors.terracotta },
+  level: { position: 'absolute', top: 10, left: 10, fontFamily: fonts.bold, fontSize: 12, color: colors.accent, backgroundColor: colors.glass, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, overflow: 'hidden' },
+  bookmark: { position: 'absolute', top: 8, right: 8, minWidth: 92, height: 48, paddingHorizontal: 12, borderRadius: 24, backgroundColor: colors.glass, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'center' },
+  bookmarkOn: { backgroundColor: colors.signal },
   bookmarkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  bookmarkTextOn: { color: '#fff' },
+  bookmarkTextOn: { color: colors.onAccent },
   wordRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8, marginTop: 16 },
   article: { fontFamily: fonts.displayMedium, fontSize: 24 },
   word: { fontFamily: fonts.display, fontSize: 38, color: colors.ink },
@@ -252,6 +252,7 @@ const styles = StyleSheet.create({
   answer: { flex: 1, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   pressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
   know: { backgroundColor: colors.accent },
-  again: { backgroundColor: colors.terracotta },
-  answerText: { fontFamily: fonts.bold, fontSize: 16, color: '#fff' },
+  again: { backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.faint },
+  answerText: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
+  knowText: { color: colors.onAccent },
 });

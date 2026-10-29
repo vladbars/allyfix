@@ -24,6 +24,8 @@ export type WordSet = {
   image: ImageSourcePropType;
   /** The words in it there are cards for; the rest come with the full app. */
   sample: string[];
+  /** A first look at a locked set's words. */
+  preview?: { article: 'der' | 'die' | 'das'; word: string; meaning: string }[];
 };
 
 export const words: Word[] = [
@@ -112,8 +114,20 @@ export const words: Word[] = [
 export const sets: WordSet[] = [
   { id: 'city', title: 'Getting around', description: 'Trams, tickets, streets and asking the way', levels: 'A1', words: 38, seen: 24, locked: false, image: require('../assets/art/set-city.jpg'), sample: ['bahnhof', 'bruecke', 'fahrrad', 'baeckerei'] },
   { id: 'weather', title: 'Weather', description: 'Sun, rain, seasons and small talk about the sky', levels: 'A1–A2', words: 24, seen: 9, locked: false, image: require('../assets/art/set-weather.jpg'), sample: ['gewitter', 'regenschirm', 'leuchtturm', 'giesskanne'] },
-  { id: 'work', title: 'At work', description: 'Meetings, colleagues, email and the office', levels: 'A2–B1', words: 52, seen: 0, locked: true, image: require('../assets/art/set-work.jpg'), sample: [] },
-  { id: 'feelings', title: 'Feelings', description: 'Saying how you are and understanding others', levels: 'B1–B2', words: 41, seen: 0, locked: true, image: require('../assets/art/set-feelings.jpg'), sample: [] },
+  { id: 'work', title: 'At work', description: 'Meetings, colleagues, email and the office', levels: 'A2–B1', words: 52, seen: 0, locked: true, image: require('../assets/art/set-work.jpg'), sample: [],
+    preview: [
+      { article: 'die', word: 'Besprechung', meaning: 'the meeting' },
+      { article: 'der', word: 'Kollege', meaning: 'the colleague' },
+      { article: 'das', word: 'Büro', meaning: 'the office' },
+      { article: 'die', word: 'Frist', meaning: 'the deadline' },
+    ] },
+  { id: 'feelings', title: 'Feelings', description: 'Saying how you are and understanding others', levels: 'B1–B2', words: 41, seen: 0, locked: true, image: require('../assets/art/set-feelings.jpg'), sample: [],
+    preview: [
+      { article: 'die', word: 'Freude', meaning: 'the joy' },
+      { article: 'das', word: 'Heimweh', meaning: 'the homesickness' },
+      { article: 'der', word: 'Mut', meaning: 'the courage' },
+      { article: 'die', word: 'Gelassenheit', meaning: 'the calm' },
+    ] },
 ];
 
 export const mascot = {

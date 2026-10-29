@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts, shadow } from './theme';
@@ -16,7 +15,7 @@ export function AddScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>New card</Text>
         <Pressable style={styles.save} onPress={() => Alert.alert('Saved', `${word} – ${meaning}`)}>
-          <Ionicons name="checkmark" size={24} color="#fff" />
+          <Ionicons name="checkmark" size={24} color={colors.onAccent} />
         </Pressable>
       </View>
       <View style={styles.hero} accessible accessibilityLabel="img_add_header_v2">
@@ -62,7 +61,7 @@ export function ProgressScreen() {
             {week.map((day, i) => (
               <View key={day.day} style={styles.streakDay}>
                 <View style={[styles.streakDot, i === week.length - 1 && styles.streakToday]}>
-                  <Ionicons name="flame" size={14} color={i === week.length - 1 ? '#fff' : colors.terracotta} />
+                  <Ionicons name="flame" size={14} color={i === week.length - 1 ? colors.onAccent : colors.signal} />
                 </View>
                 <Text style={styles.day}>{day.day}</Text>
               </View>
@@ -81,10 +80,8 @@ export function ProgressScreen() {
           {week.map((day, i) => (
             <View key={day.day} style={styles.column}>
               <Text style={styles.barValue}>{day.cards}</Text>
-              <LinearGradient
-                colors={i === week.length - 1 ? [colors.terracotta, colors.ochre] : [colors.accent, '#7FA493']}
-                style={[styles.bar, { height: 12 + (day.cards / most) * 110 }]}
-              />
+              {/* Today in the warm metal, the week before in ink. */}
+              <View style={[styles.bar, { height: 12 + (day.cards / most) * 110, backgroundColor: i === week.length - 1 ? colors.signal : colors.accent }]} />
               <Text style={styles.day}>{day.day}</Text>
             </View>
           ))}
@@ -149,14 +146,14 @@ const styles = StyleSheet.create({
   level: { flex: 1, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.faint },
   levelOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   levelText: { fontFamily: fonts.bold, color: colors.muted },
-  levelTextOn: { color: colors.card },
+  levelTextOn: { color: colors.onAccent },
   banner: { borderRadius: 26, backgroundColor: colors.card, overflow: 'hidden', ...shadow, shadowOpacity: 0.08 },
   bannerArt: { width: '100%', height: 180 },
   bannerText: { padding: 16, gap: 4 },
   streak: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
   streakDay: { alignItems: 'center', gap: 4 },
-  streakDot: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F7E3D6', alignItems: 'center', justifyContent: 'center' },
-  streakToday: { backgroundColor: colors.terracotta },
+  streakDot: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.signalSoft, alignItems: 'center', justifyContent: 'center' },
+  streakToday: { backgroundColor: colors.signal },
   bannerTitle: { fontFamily: fonts.display, fontSize: 21, color: colors.ink },
   bannerBody: { fontFamily: fonts.text, fontSize: 14, lineHeight: 19, color: colors.muted },
   stats: { flexDirection: 'row', gap: 10 },

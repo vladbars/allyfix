@@ -18,7 +18,7 @@ export function SetsScreen() {
           <Ionicons name="search" size={20} color={colors.ink} />
         </View>
         <Pressable style={styles.photo} onPress={() => Alert.alert('Set from a photo', 'Coming soon')}>
-          <Ionicons name="camera-outline" size={17} color={colors.card} />
+          <Ionicons name="camera-outline" size={17} color={colors.onAccent} />
           <Text style={styles.photoText}>From a photo</Text>
         </Pressable>
       </View>
@@ -81,7 +81,7 @@ function SetRow({ set, onOpen }: { set: WordSet; onOpen: () => void }) {
           </Text>
           {set.locked && (
             <View style={styles.plus}>
-              <Ionicons name="sparkles" size={11} color={colors.ochre} />
+              <Ionicons name="sparkles" size={11} color={colors.highlight} />
               <Text style={styles.plusText}>Plus</Text>
             </View>
           )}
@@ -102,16 +102,16 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 34, color: colors.ink, flex: 1 },
   search: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card },
   photo: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: colors.accent },
-  photoText: { fontFamily: fonts.bold, fontSize: 14, color: colors.card },
+  photoText: { fontFamily: fonts.bold, fontSize: 14, color: colors.onAccent },
   toggle: { flexDirection: 'row', gap: 8 },
-  segment: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.faint, backgroundColor: 'rgba(255,252,246,0.7)', overflow: 'hidden' },
+  segment: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16, borderWidth: 1, borderColor: colors.faint, backgroundColor: colors.glass, overflow: 'hidden' },
   segmentOn: { backgroundColor: colors.ink, borderColor: colors.ink },
   segmentText: { fontFamily: fonts.medium, color: colors.muted, fontSize: 14 },
-  segmentTextOn: { color: colors.card },
+  segmentTextOn: { color: colors.onAccent },
   feature: { borderRadius: 26, backgroundColor: colors.card, overflow: 'hidden', ...shadow },
   featureArt: { width: '100%', height: 190 },
   featureText: { padding: 16, gap: 4 },
-  featureLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.terracotta, textTransform: 'uppercase', letterSpacing: 1 },
+  featureLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.signal, textTransform: 'uppercase', letterSpacing: 1 },
   featureTitle: { fontFamily: fonts.display, fontSize: 24, color: colors.ink },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: 22, backgroundColor: colors.card, ...shadow, shadowOpacity: 0.07 },
   cover: { width: 84, height: 84, borderRadius: 16 },
@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
   rowDescription: { fontFamily: fonts.text, fontSize: 13, lineHeight: 18, color: colors.muted },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowMeta: { fontFamily: fonts.medium, fontSize: 12, color: colors.muted },
-  plus: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: '#F6E7CB' },
-  plusText: { fontFamily: fonts.bold, fontSize: 11, color: colors.ochre },
+  plus: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: colors.plusSoft },
+  plusText: { fontFamily: fonts.bold, fontSize: 11, color: colors.highlight },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   track: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.faint, overflow: 'hidden' },
   fill: { height: 5, borderRadius: 3, backgroundColor: colors.accent },
