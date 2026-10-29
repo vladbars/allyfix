@@ -3,7 +3,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from '
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { LogBox, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { CardsScreen } from './src/CardsScreen';
 import { AddScreen, ProfileScreen, ProgressScreen } from './src/OtherScreens';
@@ -11,6 +11,8 @@ import { SetsScreen } from './src/SetsScreen';
 import { Tab, TabBar } from './src/TabBar';
 import { colors } from './src/theme';
 
+// Development warnings are for the console, not over the app.
+LogBox.ignoreAllLogs();
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ fade: true, duration: 300 });
 

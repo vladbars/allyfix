@@ -39,7 +39,8 @@ struct PeopleGrid: View {
     private var tested: CheckedScreen? { checked.tasks != nil ? checked : checker.lastTest(of: checked) }
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 14) {
+        // Two across in a narrow window, three when there is room: names never cut short.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 14)], spacing: 14) {
             ForEach(Persona.people) { person in
                 tile(person)
             }
