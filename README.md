@@ -12,9 +12,9 @@ tries the same task again. What got them through is kept as a test that replays 
 
 Allyfix is a fast first pass before testing with real people, not a replacement for it.
 
-[![Watch the Allyfix demo on YouTube, 2:49](https://img.youtube.com/vi/LlBp8rzCOO4/maxresdefault.jpg)](https://www.youtube.com/watch?v=LlBp8rzCOO4)
+[![Watch the Allyfix demo on YouTube, 2:49](https://img.youtube.com/vi/Ez65ZIh-EGU/maxresdefault.jpg)](https://www.youtube.com/watch?v=Ez65ZIh-EGU)
 
-[Watch the demo](https://www.youtube.com/watch?v=LlBp8rzCOO4) (2:49) · [allyfix.dev](https://allyfix.dev)
+[Watch the demo](https://www.youtube.com/watch?v=Ez65ZIh-EGU) (2:49) · [allyfix.dev](https://allyfix.dev)
 
 ## How it works
 
@@ -164,6 +164,9 @@ From an app's **Reports** tab:
 - Runs on iOS apps in the Simulator, not on devices yet. The people can't type into text fields
   yet, so tasks that need typing aren't tested. Hearing is modeled as none, so partial hearing
   loss isn't covered.
+- Any app running in the Simulator can be tested, with or without its source. After a fix, the
+  re-check needs hot reload, as in Expo; a native app has to be rebuilt by hand, so its first
+  re-check still shows the old version.
 - The walk goes two levels deep and stops at twelve screens; it never presses anything that
   deletes, pays, sends, signs out or changes settings.
 - Fixes are local git branches. Allyfix does not open pull requests.
