@@ -186,3 +186,26 @@ struct AuditTests {
         #expect(checked.outline(of: label).frames.count == 2 && !checked.outline(of: label).area)
     }
 }
+
+@MainActor
+struct XRayTests {
+    // A 300×650 point screen drawn at 300×650 pixels: parts of the picture are easy to read.
+    let screen = Screen(device: "iPhone", frame: .init(x: 0, y: 0, width: 300, height: 650), scale: 1, elements: [
+        Element(id: 0, role: "AXButton", subrole: "", label: "Save", value: "", frame: .init(x: 20, y: 100, width: 80, height: 40), pointFrame: .init(x: 20, y: 100, width: 80, height: 40), canPress: true),
+        Element(id: 1, role: "AXStaticText", subrole: "", label: "12", value: "", frame: .init(x: 200, y: 100, width: 60, height: 40), pointFrame: .init(x: 200, y: 100, width: 60, height: 40), canPress: false),
+        Element(id: 2, role: "AXButton", subrole: "", label: "Card, Learn again, I know it", value: "", frame: .init(x: 10, y: 200, width: 280, height: 380), pointFrame: .init(x: 10, y: 200, width: 280, height: 380), canPress: true),
+    ])
+    var picture: Allyfix.Picture { Allyfix.Picture(jpeg: Data(), size: CGSize(width: 300, height: 650)) }
+    func unit(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> CGRect { CGRect(x: x / 300, y: y / 650, width: w / 300, height: h / 650) }
+
+    @Test func eachDrawnButtonIsSetAgainstWhatVoiceOverHas() {
+        let boxes = [unit(22, 102, 76, 36), unit(202, 102, 56, 36), unit(160, 520, 110, 44), unit(120, 30, 40, 40)]
+        let rays = XRay.judge(boxes, on: screen, picture: picture)
+        // Save: its own named button. The badge: words, left out. The button in the card:
+        // buried in it. The one near the top: in the status bar, left out.
+        #expect(rays.spots.map(\.state) == [.reachable, .buried])
+        let flagged = XRay.judge(boxes, on: screen, picture: picture, flagged: [1])
+        #expect(flagged.spots.map(\.state) == [.reachable, .missing, .buried])
+        #expect(ModelClient.boxes(in: "<0f>0<|box;x1=30;y1=65;x2=60;y2=130;w=300;h=650|><|mask;x=0|>") == [unit(30, 65, 30, 65)])
+    }
+}

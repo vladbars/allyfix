@@ -173,3 +173,31 @@ struct ModelClient {
         let usage: Counted
     }
 }
+
+extension ModelClient {
+    /// What was said in a recording, as words, by Muse Voice Transcribe: 16-bit mono WAV.
+    func transcribe(_ wav: Data) async throws -> String {
+        var request = URLRequest(url: Self.base.appending(path: "asr/transcribe"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let boundary = "allyfix-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 60
+        var body = Data()
+        func part(_ name: String, type: String, filename: String? = nil, _ content: Data) {
+            body += Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\(filename.map { "; filename=\"\($0)\"" } ?? "")\r\nContent-Type: \(type)\r\n\r\n".utf8)
+            body += content
+            body += Data("\r\n".utf8)
+        }
+        part("request", type: "application/json", Data(#"{"mode":"PUSH_TO_TALK","model":"muse-voice-transcribe-1.0","audioEncoding":"WAV"}"#.utf8))
+        part("audio", type: "audio/wav", filename: "sound.wav", wav)
+        body += Data("--\(boundary)--\r\n".utf8)
+        request.httpBody = body
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard status == 200 else { throw Problem.failed(status: status, message: String(decoding: data.prefix(300), as: UTF8.self)) }
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return (json?["transcript"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}

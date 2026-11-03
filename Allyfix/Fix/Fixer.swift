@@ -127,6 +127,10 @@ enum Fixer {
     by more than a thin outline or a fill (a filled icon with a word, say), nothing overlapping \
     or cut off at large text sizes. Never turn off text scaling to make a layout fit; let it \
     wrap or stack instead.
+    - Deaf or hard of hearing: whatever the app says only out loud must also be on the \
+    screen. A word's pronunciation gets a written form next to it (phonetic spelling such as \
+    [ˈbaːnhoːf], or a syllable guide), and a sound that confirms something gets a visible \
+    sign too. Keep the sound for those who hear it.
     - React Native: accessibilityLabel, accessibilityRole, accessibilityState; \
     accessible={false} on a container that should not swallow the controls inside it; \
     accessibilityElementsHidden and importantForAccessibility="no-hide-descendants" for \

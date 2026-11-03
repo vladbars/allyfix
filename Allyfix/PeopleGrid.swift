@@ -39,13 +39,25 @@ struct PeopleGrid: View {
     private var tested: CheckedScreen? { checked.tasks != nil ? checked : checker.lastTest(of: checked) }
 
     var body: some View {
-        // Two across in a narrow window, three when there is room: names never cut short.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 250), spacing: 14)], spacing: 14) {
-            ForEach(Persona.people) { person in
-                tile(person)
-            }
+        // Three across when there is room, two in a narrow window: names never cut short. Not
+        // lazy: six tiles, all of them there for VoiceOver.
+        ViewThatFits(in: .horizontal) {
+            grid(across: 3)
+            grid(across: 2)
         }
         .task(id: checked.id) { previews = Self.previews(of: checked) }
+    }
+
+    private func grid(across: Int) -> some View {
+        Grid(horizontalSpacing: 14, verticalSpacing: 14) {
+            ForEach(Array(stride(from: 0, to: Persona.people.count, by: across)), id: \.self) { start in
+                GridRow {
+                    ForEach(Persona.people[start..<min(start + across, Persona.people.count)]) { person in
+                        tile(person).frame(minWidth: 250)
+                    }
+                }
+            }
+        }
     }
 
     private func runs(_ person: Persona) -> [PersonaRun] {
@@ -82,6 +94,7 @@ struct PeopleGrid: View {
                     .buttonStyle(.plain)
                     .disabled(checker.busy)
                     .help(runs.isEmpty ? "Test only \(person.shortTitle.lowercased())" : "Test only \(person.shortTitle.lowercased()) again")
+                    .accessibilityLabel(runs.isEmpty ? "Test only \(person.shortTitle)" : "Test only \(person.shortTitle) again")
                 }
             }
             .padding(10)

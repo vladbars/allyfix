@@ -85,7 +85,8 @@ extension Checker {
             checkRuns[app]?.current = nil
             checkRuns[app]?.testing = nil
             checkRuns[app]?.finished = true
-            checkRuns[app]?.took = Date().timeIntervalSince(checkRuns[app]?.date ?? Date())
+            let started = checkRuns[app]?.date ?? Date()
+            checkRuns[app]?.took = Date().timeIntervalSince(started)
             CheckRun.save(checkRuns)
             codeStamps[app] = codeStamp(of: app)
         }
@@ -103,8 +104,14 @@ extension Checker {
             try await Explorer.waitForApp()
         } else {
             try await Explorer.go(to: [route[0]], tabs: tabs)
-            for label in route.dropFirst() {
-                guard let element = Navigator.find(label, in: try Simulator.screen()) else {
+            for (index, label) in route.dropFirst().enumerated() {
+                var element = Navigator.find(label, in: try Simulator.screen())
+                if element == nil, index == 0 {
+                    // The tab kept what was open in it, like a set: from a fresh start it is not.
+                    try await Explorer.go(to: [route[0]], tabs: tabs, fresh: true)
+                    element = Navigator.find(label, in: try Simulator.screen())
+                }
+                guard let element else {
                     return .lost("\"\(Explorer.words(label))\" is gone from the way there.")
                 }
                 _ = Simulator.press(element)

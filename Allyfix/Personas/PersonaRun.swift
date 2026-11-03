@@ -28,6 +28,8 @@ struct PersonaRun: Codable, Identifiable {
         var swipe: String?
         /// Whether the app played a sound after this step, as Allyfix heard it.
         var sound: Bool?
+        /// What the app said out loud then, as Muse Voice Transcribe wrote it down.
+        var spoken: String?
         /// What the person saw, without the marks put on it for pointing.
         var plain: Data?
     }
@@ -307,8 +309,10 @@ enum Personas {
             that can change, also where it is ("Mark the word on the top card, der Bahnhof, as \
             known"), so it stays clear after the screen changes. success says what would be visibly \
             different on screen once the task is done, so someone looking can tell, or, for a task \
-            done by listening (hearing how a word sounds), which sound plays. If something on the \
-            screen plays sound, one task is to get what that sound tells. Never a task \
+            done by listening, which sound plays. If something on the screen plays sound, one task \
+            is to get what that sound tells, named by what the person wants to know, not by the \
+            sense they use: "Find out how der Bahnhof is pronounced", not "Hear how der Bahnhof \
+            sounds". Never a task \
             that deletes, pays, sends, signs out or changes settings for good.
             """, input: [.jpeg(picture.jpeg), .text("Elements VoiceOver reads:\n" + elements)], maxTokens: 6000)
         return (Array(answer.tasks.prefix(3)), usage)
@@ -409,7 +413,20 @@ enum Personas {
                 return run
             }
             try await Task.sleep(for: settle)
-            let sounded = (ear?.heardSomething() ?? false) || !Set(Ear.simulatorProcesses()).subtracting(audible).isEmpty
+            // Speech in the Simulator starts late: a little longer to hear it, and once it
+            // starts, long enough to have it all.
+            var sounded = (ear?.heardSomething() ?? false) || !Set(Ear.simulatorProcesses()).subtracting(audible).isEmpty
+            if !sounded, let ear {
+                for _ in 0..<4 where !sounded {
+                    try await Task.sleep(for: .milliseconds(250))
+                    sounded = ear.heardSomething()
+                }
+            }
+            if sounded, ear != nil { try await Task.sleep(for: .milliseconds(1500)) }
+            // What it said, in words: people who hear get it, and it shows what a deaf person misses.
+            if sounded, let wav = ear?.recording(), let words = try? await client.transcribe(wav), !words.isEmpty {
+                run.steps[run.steps.count - 1].spoken = words
+            }
             ear?.stop()
             run.steps[run.steps.count - 1].sound = sounded
             (screen, picture) = try await look()
@@ -466,9 +483,10 @@ enum Personas {
             }
             lines.append("")
             if run.steps.last?.sound == true {
+                let said = run.steps.last?.spoken.map { ": \u{201C}\($0)\u{201D}" } ?? ", such as speech"
                 lines.append(run.persona == .deaf
                     ? "After your last action the phone played a sound. You are deaf: you noticed it only because something happened, not what it was."
-                    : "After your last action the phone played a sound, such as speech, and you heard it.")
+                    : "After your last action the phone played a sound, and you heard it\(said).")
                 lines.append("")
             }
         }
@@ -505,14 +523,15 @@ enum Personas {
 
     /// A sighted judge compares the screen before and after with what success looks like.
     static func judge(_ task: ScreenTask, before: Picture, after: Picture, run: PersonaRun, client: ModelClient) async throws -> (Verdict, ModelClient.Usage) {
-        let steps = run.steps.enumerated().map { "\($0.offset + 1). \($0.element.action)\($0.element.target.map { " \($0)" } ?? "")\($0.element.sound == true ? " (the app played a sound)" : ""): \($0.element.thought)" }.joined(separator: "\n")
+        let steps = run.steps.enumerated().map { "\($0.offset + 1). \($0.element.action)\($0.element.target.map { " \($0)" } ?? "")\($0.element.sound == true ? " (the app played a sound\($0.element.spoken.map { ", saying \u{201C}\($0)\u{201D}" } ?? ""))" : ""): \($0.element.thought)" }.joined(separator: "\n")
         let schema: [String: Any] = ["type": "object", "properties": ["achieved": ["type": "boolean"], "why": ["type": "string"]], "required": ["achieved", "why"], "additionalProperties": false]
         return try await client.answer(Verdict.self, schemaName: "verdict", schema: schema, instructions: """
             You judge an accessibility test. A person with a disability tried a task in an app. \
             You get the screen before and after, the task, what success looks like, and the \
             person's steps. Say whether the task was really done, judging by the screens, not by \
             what the person believed. A sound the app played counts for someone who hears; for a \
-            deaf person only what the screen shows counts. why: one or two plain sentences; when \
+            deaf person only what the screen shows counts, and a written form of the sound, such \
+            as a phonetic spelling, gives them what the sound does. why: one or two plain sentences; when \
             it was not done, say what in the app stopped them.
             """, input: [.text("Before:"), .jpeg(before.jpeg), .text("After:"), .jpeg(after.jpeg), .text("Task: \(task.goal)\nSuccess looks like: \(task.success)\nPersona: \(run.persona.title)\n\nSteps:\n\(steps)")], maxTokens: 4000)
     }

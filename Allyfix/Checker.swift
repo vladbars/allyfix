@@ -28,6 +28,8 @@ struct CheckedScreen: Identifiable, Codable {
     /// Where elements with flat frames are really drawn, found in the screenshot's pixels;
     /// optional, so screens kept before it existed still load.
     var inked: [Int: CGRect]?
+    /// What is drawn to be pressed, found by SAM 3.1, set against what VoiceOver reaches.
+    var xray: XRay?
     /// What people come to this screen to do, and how each persona fared at it.
     var tasks: [ScreenTask]?
     var personaRuns: [PersonaRun]?
@@ -39,7 +41,7 @@ struct CheckedScreen: Identifiable, Codable {
     var savedTests: [String]?
 
     private enum CodingKeys: CodingKey {
-        case id, date, screen, name, section, issues, reviewProblem, review, fix, fixOf, inked, tasks, personaRuns, app, route, savedTests
+        case id, date, screen, name, section, issues, reviewProblem, review, fix, fixOf, inked, tasks, personaRuns, app, route, savedTests, xray
     }
 
     /// How a persona fared at a task, once it has tried.
@@ -405,7 +407,13 @@ final class Checker {
         let id = checked.id
         do {
             let client = try ModelClient.fromEnvironment()
+            // SAM 3.1 looks at the same picture meanwhile: what is drawn to be pressed.
+            async let drawn = try? XRay.look(at: picture, client: client)
             let seen = try await Review.run(checked.screen, picture: picture, found: checked.issues, client: client)
+            if let (boxes, _) = await drawn {
+                let issues = Audit.combine(checked.screen.elements, seen: seen.issues)
+                update(id) { $0.xray = XRay.judge(boxes, on: checked.screen, picture: picture, flagged: Set(issues.flatMap(\.elements))) }
+            }
             update(id) {
                 $0.issues = Audit.combine(checked.screen.elements, seen: seen.issues)
                 $0.name = seen.name
@@ -602,7 +610,7 @@ final class Checker {
                     if run.achieved == true, persona != .control, versions(of: checked).contains(where: { version in
                         (version.personaRuns ?? []).contains { $0.persona == persona && $0.task.goal == task.goal && $0.achieved == false && keptFix(for: $0) != nil }
                     }), let now = screens.first(where: { $0.id == id }) {
-                        keepAsTest(run, on: now, route: route)
+                        await keepAsTest(run, on: now, route: route)
                     }
                 }
             }
@@ -620,16 +628,17 @@ final class Checker {
     /// Keeps a task someone managed as a test in the app's source, committed on its own:
     /// nothing else changed in the source goes with it.
     @discardableResult
-    func keepAsTest(_ run: PersonaRun, on checked: CheckedScreen, route: [String]? = nil) -> Bool {
+    func keepAsTest(_ run: PersonaRun, on checked: CheckedScreen, route: [String]? = nil) async -> Bool {
         guard let project = project(for: Self.app(of: checked)) else {
             testProblem = "Choose the app's source folder first: tests are kept there."
             return false
         }
         let way = route ?? checked.route ?? versions(of: checked).lazy.compactMap(\.route).first ?? []
-        guard let test = SavedTest(run, screen: checked.title, route: way, start: checked.screen) else {
+        guard var test = SavedTest(run, screen: checked.title, route: way) else {
             testProblem = "Nothing VoiceOver reads tells that this task is done, so it cannot be checked without a model."
             return false
         }
+        if let jpeg = checked.jpeg { await test.remember(jpeg) }
         do {
             let file = try test.save(in: project.folder)
             try project.commit("Add accessibility test: \(run.persona.title) can \(run.task.goal.lowercasedFirst)", only: ["allyfix/tests/" + file.lastPathComponent])
@@ -946,12 +955,15 @@ final class Checker {
         let client = try ModelClient.fromEnvironment()
         let picture = try await Picture.take(device: start.screen.device)
         var route = before.route ?? []
+        let tries = Set(stuck.map(\.task)).flatMap { task in [(Persona.control, task)] + stuck.filter { $0.task == task }.map { ($0.persona, task) } }
+        // Everyone not tried again keeps how they fared: the fix was not about them.
+        let retried = Set(tries.map { "\($0.0.rawValue)/\($0.1.goal)" })
+        let kept = (before.personaRuns ?? []).filter { !retried.contains("\($0.persona.rawValue)/\($0.task.goal)") && before.run($0.persona, $0.task)?.id == $0.id }
         update(id) {
             $0.tasks = before.tasks
-            $0.personaRuns = []
+            $0.personaRuns = kept
         }
         var tests: [String] = []
-        let tries = Set(stuck.map(\.task)).flatMap { task in [(Persona.control, task)] + stuck.filter { $0.task == task }.map { ($0.persona, task) } }
         for (persona, task) in tries {
             fixStage = 4
             fixing = (before.id, persona == .control ? "Someone without a disability tries \(task.goal.lowercasedFirst)…" : "\(persona.title) tries \(task.goal.lowercasedFirst) again…")
@@ -959,7 +971,8 @@ final class Checker {
                 self?.keep(partial, in: id)
             }
             keep(run, in: id)
-            if persona != .control, let test = SavedTest(run, screen: start.title, route: route, start: start.screen) {
+            if persona != .control, var test = SavedTest(run, screen: start.title, route: route) {
+                if let jpeg = start.jpeg { await test.remember(jpeg) }
                 tests.append(try test.save(in: project.folder).lastPathComponent)
             }
         }

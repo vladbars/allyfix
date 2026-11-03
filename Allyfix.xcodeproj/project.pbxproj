@@ -21,6 +21,7 @@
 		68D9B222953D1FEFC43AF5B1 /* Simulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CCA38714C77A6EAE3C5F75 /* Simulator.swift */; };
 		6C0A3CBEFD24D66DC5E2282C /* ModelClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F981EC8E2E10938AB50B20 /* ModelClient.swift */; };
 		6DB35FC4673AA134DEA4E274 /* Audit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402C28A939BCE3A3836D36F1 /* Audit.swift */; };
+		70B86F0EF85CC9B4B61C7E4D /* XRay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 904B291B4856A734CB142421 /* XRay.swift */; };
 		7122210A04BB86367709E602 /* Explorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7769797F0D280BB6B81AAC /* Explorer.swift */; };
 		72699AC84D20392A6B09777F /* ScreensTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF39A48B25D660507DDC808 /* ScreensTable.swift */; };
 		839E46086C3037CA7A904DB2 /* Picture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034BB3103B9B24FAA0CCD559 /* Picture.swift */; };
@@ -76,6 +77,7 @@
 		78C7D9B01418F95DD6869AF8 /* Paper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Paper.swift; sourceTree = "<group>"; };
 		7E8A253F62EAF914368F4DC1 /* PersonaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaTests.swift; sourceTree = "<group>"; };
 		871CBBD346C6951156A7C89F /* Compliance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Compliance.swift; sourceTree = "<group>"; };
+		904B291B4856A734CB142421 /* XRay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XRay.swift; sourceTree = "<group>"; };
 		930D041D342A43EC6B45E9B0 /* ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTests.swift; sourceTree = "<group>"; };
 		957CCC8919267A2CEC06F65A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9C93EF7E779F724990D2F838 /* Ear.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ear.swift; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 			children = (
 				402C28A939BCE3A3836D36F1 /* Audit.swift */,
 				BEB6E949478E43CF740CDAAA /* Review.swift */,
+				904B291B4856A734CB142421 /* XRay.swift */,
 			);
 			path = Audit;
 			sourceTree = "<group>";
@@ -354,6 +357,7 @@
 				72699AC84D20392A6B09777F /* ScreensTable.swift in Sources */,
 				68D9B222953D1FEFC43AF5B1 /* Simulator.swift in Sources */,
 				A8CA0F29F40651BCF310F79A /* TextSize.swift in Sources */,
+				70B86F0EF85CC9B4B61C7E4D /* XRay.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

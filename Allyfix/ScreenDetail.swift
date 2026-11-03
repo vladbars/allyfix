@@ -7,6 +7,7 @@ struct ScreenDetail: View {
     let checked: CheckedScreen
     @State private var story: PersonaRun?
     @State private var tab: Tab = .problems
+    @State private var xray = true
 
     enum Tab: Hashable { case people, problems, history }
 
@@ -14,12 +15,17 @@ struct ScreenDetail: View {
         HStack(alignment: .top, spacing: 0) {
             // A frame clicked on the screenshot shows its problem; Allyfix pointing at the worst
             // problem on its own does not change what is shown.
-            ScreenshotView(checked: checked, selected: Binding(get: { checker.selectedIssue }, set: { id in
-                checker.selectedIssue = id
-                if id != nil { tab = .problems }
-            }), fixed: fixedFrames)
-                .padding(16)
-                .frame(width: 300)
+            VStack(alignment: .leading, spacing: 8) {
+                if let rays = checked.xray, !rays.spots.isEmpty {
+                    XRayKey(rays: rays, on: $xray)
+                }
+                ScreenshotView(checked: checked, selected: Binding(get: { checker.selectedIssue }, set: { id in
+                    checker.selectedIssue = id
+                    if id != nil { tab = .problems }
+                }), fixed: fixedFrames, xray: xray)
+            }
+            .padding(16)
+            .frame(width: 300)
             Divider()
             ScrollViewReader { scroller in
                 ScrollView {
@@ -439,7 +445,7 @@ struct Story: View {
                     if checker.isKept(run, on: checked) {
                         Label("Kept as a test", systemImage: "checklist.checked").foregroundStyle(.green)
                     } else {
-                        Button { checker.keepAsTest(run, on: checked) } label: { Label("Keep as Test", systemImage: "checklist") }
+                        Button { Task { await checker.keepAsTest(run, on: checked) } } label: { Label("Keep as Test", systemImage: "checklist") }
                             .help("Saves these steps in allyfix/tests and commits that file alone: they run again with no AI and fail if this stops working")
                     }
                 }
@@ -456,8 +462,10 @@ struct Story: View {
                                 Text("Step \(number + 1)").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                                 Text(step.thought).font(.callout)
                                 if step.sound == true {
-                                    Label(run.persona == .deaf ? "The app played a sound: not heard" : "The app played a sound", systemImage: run.persona == .deaf ? "speaker.slash" : "speaker.wave.2")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                    let said = step.spoken.map { " \u{201C}\($0)\u{201D}" } ?? " a sound"
+                                    Label(run.persona == .deaf ? "The app said\(said) out loud: not heard" : "The app said\(said) out loud", systemImage: run.persona == .deaf ? "speaker.slash" : "speaker.wave.2")
+                                        .font(.callout.weight(.medium)).foregroundStyle(run.persona == .deaf ? .red : .secondary)
+                                        .help("Heard by Allyfix in the Simulator, written down by Muse Voice Transcribe")
                                 }
                                 Label(action(step), systemImage: step.action == "giveUp" ? "flag.fill" : step.action == "done" ? "checkmark" : "hand.tap")
                                     .font(.callout.weight(.medium))
@@ -511,6 +519,8 @@ struct ScreenshotView: View {
     @Binding var selected: Issue.ID?
     /// What a fix closed, framed in green.
     var fixed: [CGRect] = []
+    /// Shows what SAM 3.1 found drawn to be pressed, by whether VoiceOver reaches it.
+    var xray = false
 
     var body: some View {
         let ratio = checked.screen.frame.width / max(checked.screen.frame.height, 1)
@@ -520,6 +530,22 @@ struct ScreenshotView: View {
             } else {
                 Rectangle().fill(.quaternary)
                 ProgressView()
+            }
+            if xray, let rays = checked.xray {
+                Color.black.opacity(0.35).allowsHitTesting(false)
+                GeometryReader { geometry in
+                    ForEach(Array(rays.spots.enumerated()), id: \.offset) { _, spot in
+                        let rect = spot.box.scaled(to: geometry.size).insetBy(dx: -3, dy: -3)
+                        let color: Color = spot.state == .reachable ? .green : spot.state == .buried ? .orange : .red
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(color, lineWidth: 2.5)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(0.22)))
+                            .shadow(color: color, radius: 6)
+                            .frame(width: rect.width, height: rect.height)
+                            .position(x: rect.midX, y: rect.midY)
+                    }
+                }
+                .allowsHitTesting(false)
             }
             GeometryReader { geometry in
                 ForEach(Array(fixed.enumerated()), id: \.offset) { _, frame in
@@ -860,7 +886,8 @@ private struct StepShot: View {
                 }
                 .overlay(alignment: .bottom) {
                     if step.sound == true {
-                        Label(deaf ? "Sound, not heard" : "Sound", systemImage: deaf ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        let said = step.spoken.map { "\u{201C}\($0)\u{201D}" } ?? "Sound"
+                        Label(deaf ? "\(said) · not heard" : said, systemImage: deaf ? "speaker.slash.fill" : "speaker.wave.2.fill")
                             .font(.caption.weight(.semibold)).foregroundStyle(.white)
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Capsule().fill(deaf ? Color.red : Color.accentColor))
@@ -870,5 +897,38 @@ private struct StepShot: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.separator))
         }
+    }
+}
+
+/// What the X-ray shows, counted: everything SAM 3.1 found drawn to be pressed, and how much
+/// of it VoiceOver reaches. Turns the X-ray on and off.
+private struct XRayKey: View {
+    let rays: XRay
+    @Binding var on: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(isOn: $on) {
+                Label("X-ray · SAM 3.1", systemImage: "viewfinder").font(.callout.weight(.semibold))
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            Text("\(rays.spots.count) things drawn to press. VoiceOver reaches \(rays.count(.reachable)).")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                key(.green, rays.count(.reachable), "reached")
+                key(.orange, rays.count(.buried), "buried")
+                key(.red, rays.count(.missing), "missing")
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func key(_ color: Color, _ count: Int, _ word: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 10, height: 10)
+            Text("\(count) \(word)").font(.caption.weight(.medium))
+        }
+        .help(word == "reached" ? "VoiceOver reaches it by its own name" : word == "buried" ? "VoiceOver reads it only inside something bigger, or without a name" : "Nothing VoiceOver can press there")
     }
 }

@@ -98,7 +98,10 @@ enum Persona: String, Codable, CaseIterable, Identifiable {
         case .deaf:
             """
             You are deaf. You see the screen normally but hear nothing the app plays. You notice \
-            when something seems to happen only as sound.
+            when something seems to happen only as sound. When a task is about a sound, such as \
+            how a word is pronounced, look for what on the screen tells you the same: a written \
+            pronunciation, a caption, a visible sign. If the screen tells you, the task is done \
+            for you: say done.
             """
         case .dexterity:
             """

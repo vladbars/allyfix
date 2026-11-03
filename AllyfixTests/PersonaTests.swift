@@ -109,6 +109,11 @@ struct SavedTestScreenTests {
         otherWord[5] = "die Brücke, Learn again, I know it"
         #expect(SavedTest.alike(today, otherWord))
         #expect(!SavedTest.alike(today, ["Profile", "Lena", "Daily reminder", "Sign out"]))
+        // The barrier itself: the card read as one element, or as its parts.
+        var split = today
+        split.remove(at: 5)
+        split += ["der Bahnhof", "Learn again", "I know it"]
+        #expect(SavedTest.alike(today, split))
         #expect(Fixer.Run.Proof(test: "t", without: "Can't tell: other content", with: nil).guards == false)
         #expect(Fixer.Run.Proof(test: "t", without: "\"Saved\" did not appear.", with: nil).guards)
     }

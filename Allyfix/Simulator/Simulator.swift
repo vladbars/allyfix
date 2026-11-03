@@ -14,9 +14,10 @@ enum Simulator {
         var bar: AnyObject?
         AXUIElementCopyAttributeValue(AXUIElementCreateApplication(app.processIdentifier), kAXMenuBarAttribute as CFString, &bar)
         guard let bar, let item = menuItem("Stay On Top", in: bar as! AXUIElement, depth: 0) else { return false }
-        var mark: AnyObject?
-        AXUIElementCopyAttributeValue(item, "AXMenuItemMarkChar" as CFString, &mark)
-        if let mark = mark as? String, !mark.isEmpty { return true }
+        // The menu does not tell whether it is ticked; a window above the ordinary ones does.
+        // Pressing it when on would turn it off.
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        if windows.contains(where: { $0[kCGWindowOwnerPID as String] as? pid_t == app.processIdentifier && ($0[kCGWindowLayer as String] as? Int ?? 0) > 0 }) { return true }
         return AXUIElementPerformAction(item, kAXPressAction as CFString) == .success
     }
 

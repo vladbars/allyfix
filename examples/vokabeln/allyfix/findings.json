@@ -1,0 +1,2721 @@
+{
+  "app" : "Vokabeln",
+  "savedTests" : [
+    "mark-the-word-on-the-top-card-der-bahnhof-as-known.screenReader.json"
+  ],
+  "screens" : [
+    {
+      "checked" : "2026-10-30T08:51:02Z",
+      "name" : "Sets",
+      "problems" : [
+        {
+          "detail" : "VoiceOver reads \"Cards, tab, 1 of 5\", \"Sets, tab, 2 of 5\", \"AddCard, tab, 3 of 5\", \"Progress\" and \"Profile, tab, 5 of 5\" with 15px-high frames at y=1147, far above the icons drawn in the bottom bar. The VoiceOver cursor and double-tap land there, not on the visible icons.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "The bottom tab bar icons have frames that miss the visible icons",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "The magnifying-glass search button is read only as text \"\\uf55f\". A VoiceOver user hears a meaningless symbol and cannot activate it as a button.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  204,
+                  96
+                ],
+                [
+                  21,
+                  22
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "blocker",
+          "suggestedLabel" : "Search",
+          "title" : "The search button is read as plain text",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads the Weather, At work and Feelings cards with a trailing gap for the ⋮ menu, e.g. \"Weather, Sun, rain, seasons and small talk about the sky, A1–A2 · 24 words, 9/24, \\uf\" . The visible three-dot menu has no label so it cannot be found or activated.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  17,
+                  494
+                ],
+                [
+                  367,
+                  125
+                ]
+              ],
+              "label" : "Weather, Sun, rain, seasons and small talk about the sky, A1–A2 · 24 words, 9/24, <icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  17,
+                  632
+                ],
+                [
+                  367,
+                  109
+                ]
+              ],
+              "label" : "At work, Meetings, colleagues, email and the office, A2–B1 · 52 words, <icon>, Plus, <icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  17,
+                  754
+                ],
+                [
+                  367,
+                  109
+                ]
+              ],
+              "label" : "Feelings, Saying how you are and understanding others, B1–B2 · 41 words, <icon>, Plus, <icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeledIcon",
+          "severity" : "blocker",
+          "suggestedLabel" : "More options",
+          "title" : "The ⋮ menu buttons on the set cards have no label",
+          "wcag" : "1.1.1 Non-text Content"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 140×38, 78×33, 67×33 pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  243,
+                  87
+                ],
+                [
+                  141,
+                  39
+                ]
+              ],
+              "label" : "<icon>, From a photo",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  17,
+                  141
+                ],
+                [
+                  80,
+                  34
+                ]
+              ],
+              "label" : "Topics",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  104,
+                  141
+                ],
+                [
+                  68,
+                  34
+                ]
+              ],
+              "label" : "Mine",
+              "role" : "Link",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "3 targets smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"AddCard, tab, 3 of 5\" while the screen shows a + button. The run-together code name does not say what the tab does and Voice Control cannot match the visible \"+\".",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add",
+          "title" : "The Add tab is labeled \"AddCard\"",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        }
+      ],
+      "route" : [
+        "Sets, tab, 2 of 5"
+      ],
+      "section" : "Sets",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:51:06Z",
+      "name" : "New card",
+      "problems" : [
+        {
+          "detail" : "VoiceOver says only \"button\". Its label is an icon-font character, which VoiceOver cannot read. Someone who cannot see the screen does not know what it does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  340,
+                  87
+                ],
+                [
+                  45,
+                  45
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeled",
+          "severity" : "blocker",
+          "title" : "A button has no label",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"img_add_header_v2\" for the fox photo button. A person who cannot see the screen does not know it is a photo for the card that can be changed.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  17,
+                  147
+                ],
+                [
+                  367,
+                  191
+                ]
+              ],
+              "label" : "img_add_header_v2",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "blocker",
+          "suggestedLabel" : "Card image",
+          "title" : "The card photo button has a code name label",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"A1\", \"A2\", \"B1\", \"B2\" with no selected state, while A1 is drawn selected in white. A person cannot tell which level is currently chosen.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  17,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "A1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  111,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "A2",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  204,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "B1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  298,
+                  559
+                ],
+                [
+                  86,
+                  45
+                ]
+              ],
+              "label" : "B2",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "blocker",
+          "title" : "The Level filter selection state is not announced",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver cursors for \"Cards, tab, 1 of 5\", \"Sets, tab, 2 of 5\", \"AddCard, tab, 3 of 5\", \"Progress\" and \"Profile, tab, 5 of 5\" are tiny 15px high strips that miss the drawn icons. The cursor and double-tap land in the wrong place.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "The bottom tab bar buttons have wrong frames",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 44×44, 86×44, 85×44, 86×44… pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  340,
+                  87
+                ],
+                [
+                  45,
+                  45
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  17,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "A1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  111,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "A2",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  204,
+                  559
+                ],
+                [
+                  87,
+                  45
+                ]
+              ],
+              "label" : "B1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  298,
+                  559
+                ],
+                [
+                  86,
+                  45
+                ]
+              ],
+              "label" : "B2",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "5 targets smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"AddCard, tab, 3 of 5\" with words run together like a code name. It is confusing and hard to say for voice control.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add card",
+          "title" : "The Add tab label runs words together",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        }
+      ],
+      "route" : [
+        "AddCard, tab, 3 of 5"
+      ],
+      "section" : "Add card",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:51:10Z",
+      "name" : "Progress",
+      "problems" : [
+        {
+          "detail" : "VoiceOver cursors are 105x15 strips at y 1147, much smaller and shifted from the drawn icons. The cursor and double-tap land away from the visible tab buttons.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "Tab bar buttons have wrong frames",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads each as \"<icon>\", a private-use symbol with no meaning. A blind user hears gibberish instead of the flame streak status shown in the circles.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  43,
+                  431
+                ],
+                [
+                  15,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  93,
+                  431
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  143,
+                  431
+                ],
+                [
+                  15,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  193,
+                  431
+                ],
+                [
+                  15,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  243,
+                  431
+                ],
+                [
+                  15,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  293,
+                  431
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  431
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "title" : "Streak flame icons are read as a symbol",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver says \"AddCard, tab, 3 of 5\" with words run together as a code name. It does not match a clear visible label for the + button.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add card, tab, 3 of 5",
+          "title" : "The Add tab label runs words together",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "It reads \"Mo\", \"Tu\", \"We\"… which nobody can see: content behind or outside what is shown. Swiping reaches it as if it were there.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  39,
+                  802
+                ],
+                [
+                  19,
+                  15
+                ]
+              ],
+              "label" : "Mo",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  92,
+                  801
+                ],
+                [
+                  15,
+                  16
+                ]
+              ],
+              "label" : "Tu",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  141,
+                  802
+                ],
+                [
+                  19,
+                  15
+                ]
+              ],
+              "label" : "We",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  193,
+                  802
+                ],
+                [
+                  16,
+                  15
+                ]
+              ],
+              "label" : "Th",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  245,
+                  802
+                ],
+                [
+                  13,
+                  15
+                ]
+              ],
+              "label" : "Fr",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  294,
+                  802
+                ],
+                [
+                  16,
+                  15
+                ]
+              ],
+              "label" : "Sa",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  345,
+                  801
+                ],
+                [
+                  16,
+                  16
+                ]
+              ],
+              "label" : "Su",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "hidden",
+          "severity" : "serious",
+          "title" : "VoiceOver reads 7 things that are not on screen",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.4.3 Focus Order"
+        }
+      ],
+      "route" : [
+        "Progress"
+      ],
+      "section" : "Progress",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:51:14Z",
+      "name" : "Profile",
+      "problems" : [
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"Sprache, English\" while the screen shows \"Language\". A Voice Control user cannot say what they see and the mixed language is confusing.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  17,
+                  295
+                ],
+                [
+                  367,
+                  59
+                ]
+              ],
+              "label" : "Sprache, English",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongLanguage",
+          "severity" : "serious",
+          "suggestedLabel" : "Language, English",
+          "title" : "The Language row is announced in German",
+          "wcag" : "3.1.2 Language of Parts"
+        },
+        {
+          "detail" : "VoiceOver reads \"AddCard, tab, 3 of 5\" for the central plus button. The run-together code name does not say what the button does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add",
+          "title" : "The Add tab has a code-name label",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"Profile, tab, 5 of 5\" with no selected state, while the tab bar shows Profile as selected with a filled icon and dot. A VoiceOver user cannot tell which tab is active.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "serious",
+          "title" : "The selected Profile tab is not announced as selected",
+          "wcag" : "4.1.2 Name, Role, Value"
+        }
+      ],
+      "route" : [
+        "Profile, tab, 5 of 5"
+      ],
+      "section" : "Profile",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:52:22Z",
+      "name" : "Getting around",
+      "problems" : [
+        {
+          "detail" : "VoiceOver says only \"button\". Its label is an icon-font character, which VoiceOver cannot read. Someone who cannot see the screen does not know what it does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeled",
+          "severity" : "blocker",
+          "title" : "A button has no label",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads them as text \"憚\", not as buttons, so a blind user hears a symbol and cannot double-tap to play the pronunciation.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  343,
+                  657
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  741
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "blocker",
+          "title" : "Speaker buttons are read as plain text",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver frames are flat strips at y 1147 with height 15, much smaller and above the drawn tab icons, so the focus cursor and double-tap land in the wrong place.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "Tab bar frames miss the visible icons",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 40×40 pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "A target smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver says \"AddCard, tab, 3 of 5\" with words run together like a code name, which is confusing and does not match any visible text for Voice Control.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add card",
+          "title" : "The Add tab label runs together as \"AddCard\"",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "It reads \"das Fahrrad\", \"the bicycle\", \"die Bäckerei\"… which nobody can see: content behind or outside what is shown. Swiping reaches it as if it were there.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  95,
+                  815
+                ],
+                [
+                  229,
+                  23
+                ]
+              ],
+              "label" : "das Fahrrad",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  825
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  839
+                ],
+                [
+                  229,
+                  17
+                ]
+              ],
+              "label" : "the bicycle",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  899
+                ],
+                [
+                  229,
+                  23
+                ]
+              ],
+              "label" : "die Bäckerei",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  909
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  923
+                ],
+                [
+                  229,
+                  17
+                ]
+              ],
+              "label" : "the bakery",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  20,
+                  970
+                ],
+                [
+                  363,
+                  17
+                ]
+              ],
+              "label" : "and 34 more",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "hidden",
+          "severity" : "serious",
+          "title" : "VoiceOver reads 7 things that are not on screen",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.4.3 Focus Order"
+        }
+      ],
+      "route" : [
+        "Sets, tab, 2 of 5",
+        "CONTINUE, Getting around, 24/38"
+      ],
+      "section" : "Sets",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:52:40Z",
+      "name" : "Weather",
+      "problems" : [
+        {
+          "detail" : "VoiceOver says only \"button\". Its label is an icon-font character, which VoiceOver cannot read. Someone who cannot see the screen does not know what it does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeled",
+          "severity" : "blocker",
+          "title" : "A button has no label",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads the speaker icons as text \"Ὑa\" instead of a button, so a person who cannot see the screen cannot find or activate audio pronunciation.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  343,
+                  657
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  741
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "blocker",
+          "suggestedLabel" : "Play audio",
+          "title" : "Pronunciation buttons read as plain text",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver frames for the five tab bar buttons are 105x15 strips above the icons, so the cursor and double-tap land in the wrong place.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "Tab bar VoiceOver frames miss the icons",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 40×40 pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "A target smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver says \"AddCard, tab, 3 of 5\" while no text is shown and the words run together, so it is confusing and a Voice Control user cannot say it.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add Card",
+          "title" : "The Add tab label runs together as AddCard",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "It reads \"der Leuchtturm\", \"the lighthouse\", \"die Gießkanne\"… which nobody can see: content behind or outside what is shown. Swiping reaches it as if it were there.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  95,
+                  815
+                ],
+                [
+                  229,
+                  23
+                ]
+              ],
+              "label" : "der Leuchtturm",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  825
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  839
+                ],
+                [
+                  229,
+                  17
+                ]
+              ],
+              "label" : "the lighthouse",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  899
+                ],
+                [
+                  229,
+                  23
+                ]
+              ],
+              "label" : "die Gießkanne",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  343,
+                  909
+                ],
+                [
+                  22,
+                  21
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  923
+                ],
+                [
+                  229,
+                  17
+                ]
+              ],
+              "label" : "the watering can",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  20,
+                  970
+                ],
+                [
+                  363,
+                  17
+                ]
+              ],
+              "label" : "and 20 more",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "hidden",
+          "severity" : "serious",
+          "title" : "VoiceOver reads 7 things that are not on screen",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.4.3 Focus Order"
+        }
+      ],
+      "route" : [
+        "Sets, tab, 2 of 5",
+        "Weather, Sun, rain, seasons and small talk about the sky, A1–A2 · 24 words, 9/24, "
+      ],
+      "section" : "Sets",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:52:56Z",
+      "name" : "At work",
+      "problems" : [
+        {
+          "detail" : "VoiceOver says only \"button\". Its label is an icon-font character, which VoiceOver cannot read. Someone who cannot see the screen does not know what it does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeled",
+          "severity" : "blocker",
+          "title" : "A button has no label",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 40×40, 78×34 pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  290,
+                  438
+                ],
+                [
+                  79,
+                  35
+                ]
+              ],
+              "label" : "Try free",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "2 targets smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"<icon>\" as a separate text item next to \"52 words with Plus\". The sparkle image is purely decorative and adds extra noise for someone who cannot see the screen.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  34,
+                  446
+                ],
+                [
+                  19,
+                  19
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "decorative",
+          "severity" : "serious",
+          "title" : "The sparkle image in the Plus banner is exposed",
+          "wcag" : "1.1.1 Non-text Content"
+        },
+        {
+          "detail" : "VoiceOver reads \"<icon>\" for each lock status icon. A symbol is read literally so a VoiceOver user cannot understand that the words are locked.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  355,
+                  582
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  666
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  750
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Locked",
+          "title" : "The lock icons are read as a symbol",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver says \"AddCard, tab, 3 of 5\" for the center + button. The code name with words run together does not say what the thing is and cannot be activated by voice with the visible name.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add",
+          "title" : "The Add tab label is a code name",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "It reads \"die\", \"die Frist\", \"the deadline\"… which nobody can see: content behind or outside what is shown. Swiping reaches it as if it were there.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  43,
+                  831
+                ],
+                [
+                  28,
+                  24
+                ]
+              ],
+              "label" : "die",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  823
+                ],
+                [
+                  249,
+                  23
+                ]
+              ],
+              "label" : "die Frist",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  834
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  847
+                ],
+                [
+                  249,
+                  17
+                ]
+              ],
+              "label" : "the deadline",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  20,
+                  894
+                ],
+                [
+                  363,
+                  17
+                ]
+              ],
+              "label" : "and 48 more with Plus",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "hidden",
+          "severity" : "serious",
+          "title" : "VoiceOver reads 5 things that are not on screen",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.4.3 Focus Order"
+        }
+      ],
+      "route" : [
+        "Sets, tab, 2 of 5",
+        "At work, Meetings, colleagues, email and the office, A2–B1 · 52 words, , Plus, "
+      ],
+      "section" : "Sets",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T08:53:13Z",
+      "name" : "Feelings",
+      "problems" : [
+        {
+          "detail" : "VoiceOver says only \"button\". Its label is an icon-font character, which VoiceOver cannot read. Someone who cannot see the screen does not know what it does.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "unlabeled",
+          "severity" : "blocker",
+          "title" : "A button has no label",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 40×40, 78×34 pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  15,
+                  73
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  290,
+                  438
+                ],
+                [
+                  79,
+                  35
+                ]
+              ],
+              "label" : "Try free",
+              "role" : "GenericElement",
+              "value" : ""
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "2 targets smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver stops on \"<icon>\" for the sparkles icon next to \"41 words with Plus\". It adds no information and is confusing to hear.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  34,
+                  446
+                ],
+                [
+                  19,
+                  19
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "decorative",
+          "severity" : "serious",
+          "title" : "The sparkles icon is exposed to VoiceOver",
+          "wcag" : "1.1.1 Non-text Content"
+        },
+        {
+          "detail" : "VoiceOver reads the lock icons as \"<icon>\". A person who cannot see the screen hears a symbol with no meaning and does not know the words are locked.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  355,
+                  582
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  666
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  750
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Locked",
+          "title" : "The lock icons are read as a symbol",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver says \"AddCard, tab, 3 of 5\" for the center + tab. The words run together and differ from what is drawn, so it is unclear and Voice Control cannot say it.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add card",
+          "title" : "The Add tab label runs together as \"AddCard\"",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "It reads \"die\", \"die Gelassenheit\", \"the calm\"… which nobody can see: content behind or outside what is shown. Swiping reaches it as if it were there.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  43,
+                  831
+                ],
+                [
+                  28,
+                  24
+                ]
+              ],
+              "label" : "die",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  823
+                ],
+                [
+                  249,
+                  23
+                ]
+              ],
+              "label" : "die Gelassenheit",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  355,
+                  834
+                ],
+                [
+                  17,
+                  18
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  95,
+                  847
+                ],
+                [
+                  249,
+                  17
+                ]
+              ],
+              "label" : "the calm",
+              "role" : "StaticText",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  20,
+                  894
+                ],
+                [
+                  363,
+                  17
+                ]
+              ],
+              "label" : "and 37 more with Plus",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "hidden",
+          "severity" : "serious",
+          "title" : "VoiceOver reads 5 things that are not on screen",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.4.3 Focus Order"
+        }
+      ],
+      "route" : [
+        "Sets, tab, 2 of 5",
+        "Feelings, Saying how you are and understanding others, B1–B2 · 41 words, , Plus, "
+      ],
+      "section" : "Sets",
+      "stuck" : [
+
+      ]
+    },
+    {
+      "checked" : "2026-10-30T09:07:34Z",
+      "name" : "Today",
+      "problems" : [
+        {
+          "detail" : "VoiceOver reads \"All\" as plain text, so a VoiceOver user cannot activate the filter and does not hear that it is selected.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  30,
+                  145
+                ],
+                [
+                  17,
+                  17
+                ]
+              ],
+              "label" : "All",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongRole",
+          "severity" : "blocker",
+          "title" : "The \"All\" filter looks like a selected button but is read as plain text",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver frames are only 105x15 and miss the visible tab icons, so the focus ring and double-tap land in the wrong place.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  23,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Cards, tab, 1 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  94,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Sets, tab, 2 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  307,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Profile, tab, 5 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "wrongFrame",
+          "severity" : "blocker",
+          "title" : "Tab bar frames miss the visible icons",
+          "wcag" : "1.3.2 Meaningful Sequence, 2.5.8 Target Size"
+        },
+        {
+          "detail" : "Apple recommends at least 44×44 points for anything to tap. Sizes: 65×30, 40×30, 43×30, 40×30… pt.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  66,
+                  138
+                ],
+                [
+                  65,
+                  31
+                ]
+              ],
+              "label" : "Saved",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  136,
+                  138
+                ],
+                [
+                  41,
+                  31
+                ]
+              ],
+              "label" : "A1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  183,
+                  138
+                ],
+                [
+                  44,
+                  31
+                ]
+              ],
+              "label" : "A2",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  232,
+                  138
+                ],
+                [
+                  41,
+                  31
+                ]
+              ],
+              "label" : "B1",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  278,
+                  138
+                ],
+                [
+                  44,
+                  31
+                ]
+              ],
+              "label" : "B2",
+              "role" : "GenericElement",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  122,
+                  595
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "Listen",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  180,
+                  595
+                ],
+                [
+                  41,
+                  41
+                ]
+              ],
+              "label" : "Show meaning",
+              "role" : "Button",
+              "value" : ""
+            },
+            {
+              "frame" : [
+                [
+                  239,
+                  595
+                ],
+                [
+                  40,
+                  41
+                ]
+              ],
+              "label" : "Hide examples",
+              "role" : "CheckBox",
+              "value" : "0"
+            }
+          ],
+          "kind" : "smallTarget",
+          "severity" : "serious",
+          "title" : "8 targets smaller than 44×44 pt",
+          "wcag" : "2.5.8 Target Size (Minimum), Apple HIG"
+        },
+        {
+          "detail" : "The other items in this bar are read as \"tab, 1 of 5\"; this one is read as a plain button, so the bar sounds broken.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  236,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "Progress",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "missingTabRole",
+          "severity" : "serious",
+          "title" : "\"Progress\" is not announced as a tab",
+          "wcag" : "4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads the streak icon as \"ﰓ\", a symbol read literally, so a blind user does not know it means streak.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  335,
+                  100
+                ],
+                [
+                  17,
+                  17
+                ]
+              ],
+              "label" : "<icon>",
+              "role" : "StaticText",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Streak",
+          "title" : "The flame streak icon is read as a symbol",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        },
+        {
+          "detail" : "VoiceOver reads \"AddCard, tab, 3 of 5\" with words run together, which is confusing and does not match the visible plus icon.",
+          "elements" : [
+            {
+              "frame" : [
+                [
+                  165,
+                  782
+                ],
+                [
+                  72,
+                  11
+                ]
+              ],
+              "label" : "AddCard, tab, 3 of 5",
+              "role" : "Button",
+              "value" : ""
+            }
+          ],
+          "kind" : "unclearLabel",
+          "severity" : "serious",
+          "suggestedLabel" : "Add card",
+          "title" : "The Add tab is read as \"AddCard\"",
+          "wcag" : "2.5.3 Label in Name, 4.1.2 Name, Role, Value"
+        }
+      ],
+      "route" : [
+
+      ],
+      "section" : "Cards",
+      "stuck" : [
+
+      ]
+    }
+  ],
+  "written" : "2026-10-30T09:13:59Z"
+}

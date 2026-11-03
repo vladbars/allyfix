@@ -37,6 +37,8 @@ struct FixPage: View {
     /// The check the fix is made from.
     let before: CheckedScreen
     @State private var diff: String?
+    /// Shows what SAM 3.1 found drawn to be pressed on both screens, by whether VoiceOver reaches it.
+    @State private var xray = true
 
     private var run: Fixer.Run? { before.fix }
     private var after: CheckedScreen? { run?.after.flatMap { id in checker.screens.first { $0.id == id } } }
@@ -170,8 +172,8 @@ struct FixPage: View {
             } else if let run {
                 if after == nil {
                     Button("Check Now") { checker.checkAfterFix(of: before.id) }.disabled(checker.fixing != nil)
-                } else if let after, checker.targets(of: before).contains(where: { after.run($0.persona, $0.task)?.achieved == nil }) {
-                    Button("Try Again Now") { checker.tryAgainAfterFix(of: before.id) }
+                } else if let after, checker.targets(of: before).contains(where: { after.run($0.persona, $0.task)?.achieved != true }) {
+                    Button("Try Again") { checker.tryAgainAfterFix(of: before.id) }
                         .disabled(checker.fixing != nil || checker.testing != nil)
                         .help("The people who were stuck try the task again on the fixed app. Keep the Simulator in view.")
                 }
@@ -198,7 +200,19 @@ struct FixPage: View {
     private var screens: some View {
         let changes = self.changes
         return VStack(alignment: .leading, spacing: 16) {
-        Text("On screen").font(.title3.weight(.semibold))
+        HStack {
+            Text("On screen").font(.title3.weight(.semibold))
+            Spacer()
+            if before.xray != nil || after?.xray != nil {
+                Toggle(isOn: $xray) { Label("X-ray · SAM 3.1", systemImage: "viewfinder") }
+                    .toggleStyle(.switch)
+                    .help("Green: VoiceOver reaches it by name. Orange: only inside something bigger, or nameless. Red: nothing to press.")
+            }
+        }
+        if xray, let was = before.xray, let now = after?.xray {
+            Text("VoiceOver reached \(was.count(.reachable)) of \(was.spots.count) things drawn to press before the fix, and \(now.count(.reachable)) of \(now.spots.count) after.")
+                .font(.callout.weight(.medium))
+        }
         if after != nil {
             Text(changes.isEmpty
                  ? "Nothing looks different: the change is in what VoiceOver reads."
@@ -217,13 +231,21 @@ struct FixPage: View {
         HStack(alignment: .top, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Before").font(.headline).foregroundStyle(.secondary)
-                Shot(jpeg: before.jpeg, places: changes, color: .orange).frame(width: 260)
+                if xray, before.xray != nil {
+                    ScreenshotView(checked: before, selected: .constant(nil), xray: true).frame(width: 260)
+                } else {
+                    Shot(jpeg: before.jpeg, places: changes, color: .orange).frame(width: 260)
+                }
             }
             Image(systemName: "arrow.right").font(.title).foregroundStyle(.tertiary).padding(.top, 200)
             VStack(alignment: .leading, spacing: 8) {
                 Text("After").font(.headline).foregroundStyle(.secondary)
                 if let after {
-                    Shot(jpeg: after.jpeg, places: changes, color: .green).frame(width: 260)
+                    if xray, after.xray != nil {
+                        ScreenshotView(checked: after, selected: .constant(nil), xray: true).frame(width: 260)
+                    } else {
+                        Shot(jpeg: after.jpeg, places: changes, color: .green).frame(width: 260)
+                    }
                 } else {
                     RoundedRectangle(cornerRadius: 12).fill(.quaternary)
                         .frame(width: 260, height: 560)
