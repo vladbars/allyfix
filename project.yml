@@ -35,8 +35,8 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSHumanReadableCopyright: © 2026 Vladislav Baranov
-        # The deaf person: whether the app under test played a sound. Measured, never kept.
-        NSAudioCaptureUsageDescription: Allyfix measures whether the app in the Simulator played a sound, to test it for people who cannot hear. Nothing is recorded.
+        # What the app under test says out loud, written down for the people who can hear it.
+        NSAudioCaptureUsageDescription: Allyfix listens to the app in the Simulator to test it for people who cannot hear. When the app plays a sound, that step's audio goes to Meta's speech model to write down what was said.
   AllyfixTests:
     type: bundle.unit-test
     platform: macOS

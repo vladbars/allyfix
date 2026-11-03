@@ -28,7 +28,7 @@
 		<true/>
 	</dict>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>Allyfix measures whether the app in the Simulator played a sound, to test it for people who cannot hear. Nothing is recorded.</string>
+	<string>Allyfix listens to the app in the Simulator to test it for people who cannot hear. When the app plays a sound, that step's audio goes to Meta's speech model to write down what was said.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Vladislav Baranov</string>
 </dict>
