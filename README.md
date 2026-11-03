@@ -127,7 +127,9 @@ From an app's **Reports** tab:
 
 - Synthetic people find barriers fast and repeatably, but they are models. Their findings are
   meant to be confirmed with people who use assistive technology.
-- iOS apps in the Simulator only. Text entry and partial hearing loss are not covered yet.
+- Runs on iOS apps in the Simulator, not on devices yet. The people can't type into text fields
+  yet, so tasks that need typing aren't tested. Hearing is modeled as none, so partial hearing
+  loss isn't covered.
 - The walk goes two levels deep and stops at twelve screens; it never presses anything that
   deletes, pays, sends, signs out or changes settings.
 - Fixes are local git branches. Allyfix does not open pull requests.
