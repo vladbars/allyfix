@@ -12,6 +12,10 @@ tries the same task again. What got them through is kept as a test that replays 
 
 Allyfix is a fast first pass before testing with real people, not a replacement for it.
 
+[![Watch the Allyfix demo on YouTube, 2:49](https://img.youtube.com/vi/LlBp8rzCOO4/maxresdefault.jpg)](https://www.youtube.com/watch?v=LlBp8rzCOO4)
+
+[Watch the demo](https://www.youtube.com/watch?v=LlBp8rzCOO4) (2:49) · [allyfix.dev](https://allyfix.dev)
+
 ## How it works
 
 1. **Explore App.** Allyfix walks the app running in the Simulator: every tab, then what each
@@ -73,24 +77,54 @@ to make out.
 
 ## Run it
 
-Requirements: a Mac with macOS 15 or later, Xcode 26 with an iOS Simulator, Node.js 20 or
-later, and a Meta Model API key.
+You need a Mac with macOS 15 or later, Xcode 26 with an iOS Simulator, Node.js 20 or later, and
+a Meta Model API key.
+
+**1. Get the code and add your key.**
 
 ```sh
-git clone <this repository> && cd allyfix
+git clone https://github.com/vladbars/allyfix.git && cd allyfix
 echo 'MODEL_API_KEY=your-key' > .env
+```
 
-# The example app, in its own terminal: built, installed in the Simulator, and served.
+**2. Start an app to test.** Vokabeln is the example, with accessibility problems to find. It
+opens in the Simulator; leave this terminal running.
+
+```sh
 cd examples/vokabeln && npm install && npx expo run:ios
 ```
 
-Open `Allyfix.xcodeproj` in Xcode and run the Allyfix scheme. On first launch, allow
-Accessibility access for Allyfix in System Settings → Privacy & Security; Allyfix reads and
-presses the app in the Simulator through it and sees nothing else. For your own app, run it
-in the Simulator as usual and point Allyfix at its source folder when you first fix.
+**3. Start Allyfix.** In a second terminal, from the `allyfix` folder:
 
-Real taps and swipes need the Simulator window in front where it taps. When another app
-covers it, Allyfix waits and asks you to bring it forward.
+```sh
+xcodebuild -project Allyfix.xcodeproj -scheme Allyfix -configuration Release \
+  -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= build
+open build/Build/Products/Release/Allyfix.app
+```
+
+To work on Allyfix itself, open `Allyfix.xcodeproj` in Xcode, choose your team under Signing &
+Capabilities, and run the Allyfix scheme.
+
+**4. Walk through the app.** Keep the Simulator window visible, then in Allyfix:
+
+1. Press **Explore App**. The first time, macOS needs Accessibility access: press **Open System
+   Settings**, turn on Allyfix, come back and press **I've Allowed It**, then **Explore App**
+   again. Allyfix reads and presses the app in the Simulator through this access and sees
+   nothing else. It walks every screen by itself.
+2. In the sidebar, select **Today** and press **Test People**. Watch who gets stuck. macOS asks
+   once to capture system audio; allow it for the deaf person's test.
+3. Select **Vokabeln** at the top of the sidebar. Press **Choose Screens…**, select **Today**,
+   keep **Blocking only**, and press **Fix 1**. When asked for the source, choose the
+   `examples/vokabeln` folder.
+4. When the same people have tried again, press **Keep Fix** or **Undo Fix**. Then back on
+   Vokabeln, press **Re-test Now**: it replays every screen and saved test with no model.
+
+For your own app, run it in the Simulator as usual and point Allyfix at its source folder when
+you first fix.
+
+Real taps and swipes need the Simulator window in front where it taps. When another app covers
+it, Allyfix waits and asks you to bring it forward.
 
 ## A walk through Vokabeln
 
