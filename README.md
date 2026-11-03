@@ -20,7 +20,8 @@ Allyfix is a fast first pass before testing with real people, not a replacement 
 2. **Check.** Rules catch what the accessibility tree shows (no label, a wrong role, a frame
    that misses what is drawn, a target too small). Muse Spark compares the screenshot with what
    VoiceOver reads and catches the rest (a card read as one element, a state told only by
-   color).
+   color). SAM 3.1 finds everything drawn to be pressed, and the X-ray sets each thing against
+   VoiceOver: reachable by its own name, buried inside something bigger, or missing.
 3. **Test People.** Muse Spark works out the two main tasks of a screen, then plays each
    person, step by step, with only their perception. Someone without a disability goes first:
    a task even they cannot do is not counted. A judge model looks at the screen after every
@@ -51,10 +52,11 @@ only by access need and tool.
 | 4.2.10 | Cognitive and learning | The plain screenshot | Acts only on what the words on screen say |
 
 The blur and the color filter are test conditions, not a claim about how any one person sees.
-For the deaf person Allyfix listens to the Simulator's own audio, measures whether the app
-answered an action with a sound, and tells the person only that something sounded: what the
-app says only out loud, it does not get. The level is measured, nothing is recorded; macOS
-asks once for permission to capture system audio.
+Allyfix listens to the Simulator's own audio, and no other app's, while a person acts. When the
+app answers with a sound, the recording of that step goes to Muse Voice Transcribe, and the
+words are kept with the step. A hearing person is told the words; the deaf person is told only
+that something sounded, so what the app says only out loud, they do not get. macOS asks once
+for permission to capture system audio.
 When the low vision person gets stuck, Allyfix also searches the text size at which the task
 stops working for someone who sees well, to tell a layout that breaks from things too small
 to make out.
@@ -64,6 +66,8 @@ to make out.
 | Step | Model |
 |---|---|
 | Finding problems in a screenshot, the tasks of a screen, playing a person, judging a step | Muse Spark (`muse-spark-1.3`) |
+| Finding what is drawn to be pressed, for the X-ray | SAM 3.1 (`sam-3.1`) |
+| Writing down what the app says out loud | Muse Voice Transcribe (`muse-voice-transcribe-1.0`) |
 | Writing a fix | Muse Wonder (`muse-wonder-1.0`) |
 | Rules, the walk, Re-test, saved tests, before/after comparison, reports | none |
 
@@ -96,8 +100,10 @@ each other. It comes with the accessibility problems that brings.
 
 1. **Explore App.** Allyfix finds nine screens, including each word set behind the Sets tab.
    The app page shows them as a tree, with one column per person.
-2. Open **Today** and **Test People**. Screen reader user: stuck at "Mark der Bahnhof as
+2. Open **Today**. The X-ray shows 25 things drawn to be pressed, and VoiceOver reaches 5. Run
+   **Test People**. Screen reader user: stuck at "Mark der Bahnhof as
    known", because the whole card is read as one element and "I know it" cannot be reached.
+   Deaf: stuck at finding out how the word is pronounced, because the app only says it out loud.
    Low vision: stuck at saving a word, because the bookmark is a thin icon.
 3. **Fix**. The fix page shows the steps, then before and after: for low vision, Muse Wonder
    turned the 34-point bookmark into a 48-point "Save" button that turns into a filled
