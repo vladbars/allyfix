@@ -94,7 +94,10 @@ opens in the Simulator; leave this terminal running.
 cd examples/vokabeln && npm install && npx expo run:ios
 ```
 
-**3. Start Allyfix.** In a second terminal, from the `allyfix` folder:
+**3. Start Allyfix.** Open `Allyfix.xcodeproj` in Xcode, choose your team under Signing &
+Capabilities, and press Run.
+
+Or, without a team, build it from a second terminal in the `allyfix` folder:
 
 ```sh
 xcodebuild -project Allyfix.xcodeproj -scheme Allyfix -configuration Release \
@@ -102,9 +105,6 @@ xcodebuild -project Allyfix.xcodeproj -scheme Allyfix -configuration Release \
   DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= build
 open build/Build/Products/Release/Allyfix.app
 ```
-
-To work on Allyfix itself, open `Allyfix.xcodeproj` in Xcode, choose your team under Signing &
-Capabilities, and run the Allyfix scheme.
 
 **4. Walk through the app.** Keep the Simulator window visible, then in Allyfix:
 
